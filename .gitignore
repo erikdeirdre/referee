@@ -127,3 +127,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# local files
+credentials.json
+*.csv
+client_secret*.json
+token.json
+*.xlsx
+
+# vsCode
+.vscode

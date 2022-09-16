@@ -134,6 +134,8 @@ credentials.json
 client_secret*.json
 token.json
 *.xlsx
+files/**
+*.ods
 
 # vsCode
 .vscode

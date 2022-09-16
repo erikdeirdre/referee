@@ -1,10 +1,10 @@
-from datetime import datetime
-from email import header
+from sys import (argv, exit)
+from os.path import exists
+from getopt import (getopt, GetoptError)
+from datetime import (datetime, date, time)
 from posixpath import split
-import re
 import csv
 import pandas as pd
-from pandas_ods_reader import read_ods
 
 
 def load_fields(file_name):
@@ -19,83 +19,169 @@ def load_fields(file_name):
 
     return fields
 
-def read_master_spreadsheet(file_name):
-    sheet_index = 2
+def get_games(rows, home_team):
     games = []
-    df = read_ods(file_name, sheet_index )
-    for value in df.values:
-        if 'hanover' in value[3].lower():
-            gender = value[0].split()[-1]
-            age_group = value[0].replace(gender, '').rstrip()
-            games.append({
-                'game_nbr': '',
-                'game_level': '',
-                'game_description': '',
-                'crew_size': '',
-                'crew_description': '',
-                'notes': '',
-                'gender': gender[:1],
-                'age_group': age_group,
-                'date': value[2],
-                'home_team': f"{value[3].upper()}-{int(value[4])}",
-                'away_team': f"{value[5].upper()}-{int(value[6])}"
-            })
+    found_games = False
+
+    for row in rows.values:
+        if found_games and home_team in row[2].lower():
+            games.append({'game_date': row[1],'home_team': f"{row[2].title()}-{int(row[3])}",
+                        'away_team': f"{row[4].title()}-{int(row[5])}"})
+        elif isinstance(row[2],str) and 'home team' in row[2].lower() and \
+            'away team' in row[4].lower():
+            found_games = True
 
     return games
 
-def read_town_spreadsheet(town_name, file_name, fields):
+def read_master_spreadsheet(file_name, home_team):
+    games = []
+    df = pd.ExcelFile(file_name)
+    for sheet in df.book.worksheets:
+        if sheet.sheet_state == 'visible':
+            rows = df.parse(sheet.title)
+            game_result = get_games(rows, home_team)
+            if len(rows) and "team template" in rows.columns[0].lower() and \
+                "bracket" in rows.values[0][0].lower() and \
+                "age group" in rows.values[0][2].lower() and \
+                len(game_result) > 0:
+                age_group_gender = rows.values[0][4].split(' ')
+                if age_group_gender[-1][:1] == 'B':
+                    gender = 'M'
+                else:
+                    gender = 'F'
+                for game in game_result:
+                    games.append({
+                        'game_nbr': '',
+                        'game_level': '',
+                        'game_description': '',
+                        'crew_size': '',
+                        'crew_description': '',
+                        'notes': '',
+                        'gender': gender,
+                        'age_group': age_group_gender[1],
+                        'date': game['game_date'].strftime("%m/%d/%Y"),
+                        'home_team': game['home_team'],
+                        'away_team': game['away_team']               
+                    })
+
+    return games
+
+def read_town_spreadsheet(file_name, town_name, fields):
+    df = pd.ExcelFile(file_name)
+    lookup = {
+        'field': 0,
+        'time': 0,
+        'dates': {}
+    }
     game_times = []
-    sheet_index = 8
-    df = read_ods(file_name, sheet_index )
 
-    col_start = 4
+    for sheet in df.book.worksheets:
+        if sheet.sheet_state == 'visible' and \
+            sheet.title in ('7TH_8TH', '5TH_6TH'):
+            found_schedule = False
+            if '7TH' in sheet.title:
+                age_group = '7/8'
+            if '5TH' in sheet.title:
+                age_group = '5/6' 
+            for row in df.parse(sheet.title).values:
+                if "Division" in row and "Field" in row and "Time" in row:
+                    found_schedule = True
+                    col_cnt = 0
+                    for col in row:
+                        if isinstance(col, str):
+                            if 'field' in col.lower():
+                                lookup['field'] = col_cnt
+                            if 'time' in col.lower():
+                                lookup['time'] = col_cnt
+                        if isinstance(col, date):
+                            lookup['dates'][col.strftime("%m/%d/%Y")] = col_cnt
+                        col_cnt += 1
 
-    for col in range(col_start, df.columns.size):
-        try:
-            date_check = datetime.strptime(df.columns[col],
-                                            '%Y-%m-%d')
-        except (ValueError, TypeError):
-            print(f"{df.columns[col]} is invalid, Needs to be"
-                  f" formatted as 'YYYY-MM-DD'")
-            print("Please correct, and run this again")
+                try:
+                    if found_schedule and isinstance(row[lookup['time']], time):
+                        for col in lookup['dates'].keys():
+                            if isinstance(row[lookup['dates'][col]], str) and \
+                                'NO GAMES' not in row[lookup['dates'][col]]:
+                                gender_team = row[lookup['dates'][col]].split('-')
+                                if gender_team[0].strip() == "B":
+                                    gender = "M"
+                                else:
+                                    gender = "F"
+                                game_times.append({
+                                    'date': col,
+                                    'time': row[lookup['time']].strftime("%I:%M %p"),
+                                    'location': fields[row[lookup['field']]],
+                                    'age_group': age_group,
+                                    'gender': gender,
+                                    'home_team': f"{town_name.title()}-{gender_team[1].strip()}"
+                                })
+                except IndexError:
+                    print(row)
 
-    for row in df.values:
-        for col in range(col_start, df.columns.size):
-            if row[col] is not None and \
-               re.fullmatch('[A-Z,a-z] - [1-9]', row[col]):
-                split_field = row[col].split(' - ')
-                game_times.append(
-                    {
-                        'date': df.columns[col],
-                        'time': row[2],
-                        'location': f"{fields[row[1]]}",
-                        'age_group': row[0],
-                        'gender': split_field[0],
-                        'home_team': f"{town_name}-{split_field[1]}"
-                    }
-                )
     return game_times
 
 def main():
-    fields = load_fields('fields.csv')
-    town_times = pd.DataFrame(read_town_spreadsheet(
-        'HANOVER','/home/pwhite/Downloads/Spring_2022_homeschedule.ods',
-        fields))
-    master_schedule = pd.DataFrame(
-        read_master_spreadsheet('/home/pwhite/Downloads/Spring2022Schedule.ods'))
+    master_file = None
+    town_file = None
+    town = None
+    USAGE='referee.py -m <master schedule file> -s <town schedule file>'
+    '-t <town> -f <field conversion file> -o <output file name>'
 
-    header = ['GameNum', 'GameDate', 'GameTime', 'GameAge', 'GameLevel',
-                    'Gender', 'Location', 'HomeTeam', 'AwayTeam',
-                    'GameDescription', 'CrewSize', 'CrewDescription', 'Notes']
+    try:
+        opts, args = getopt(argv[1:],"hm:t:s:o:f:",
+                            ["master-file=","town-file=","town=", "output=", "fields="])
+    except GetoptError:
+        print(USAGE)
+        exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print(USAGE)
+            exit(3)
+        elif opt in ("-m", "--master-file"):
+            master_file = arg
+        elif opt in ("-s", "--town-file"):
+            town_file = arg
+        elif opt in ("-t", "--town"):
+            town = arg.lower()
+        elif opt in ("-o", "--output"):
+            output_file = arg
+        elif opt in ("-f", "--fields"):
+            field_file = arg
+    if town is None or town_file is None or master_file is None or \
+        field_file is None or output_file is None:
+        print(USAGE)
+        exit(3)
+
+    master_schedule = pd.DataFrame(read_master_spreadsheet(master_file, town))
+
+    fields = load_fields(field_file)
+
+    town_times = pd.DataFrame(read_town_spreadsheet(town_file, town, fields))
+
+    header = [
+        'GameNum', 'GameDate', 'GameTime', 'GameAge', 'GameLevel',
+        'Gender', 'Location', 'HomeTeam', 'AwayTeam',
+        'GameDescription', 'CrewSize', 'CrewDescription', 'Notes'
+    ]
+
+    master_schedule['age_group'] = master_schedule['age_group'].astype(str)
+    master_schedule['home_team'] = master_schedule['home_team'].astype(str)
+    master_schedule['gender'] = master_schedule['gender'].astype(str)
+#    master_schedule['date'] = master_schedule['date'].astype('datetime64[ns]')
+
+    town_times['age_group'] = town_times['age_group'].astype(str)
+    town_times['home_team'] = town_times['home_team'].astype(str)
+    town_times['gender'] = town_times['gender'].astype(str)
+#    town_times['date'] = town_times['date'].astype('datetime64[ns]')   
+
     town_schedule = pd.merge(master_schedule, town_times, how='inner',
                              on=['age_group', 'date', 'gender', 'home_team'])
 
-    town_schedule.to_excel('result.xlsx', header=header, columns=['game_nbr',
+    town_schedule.to_excel(output_file, header=header, columns=['game_nbr',
                             'date','time', 'age_group', 'game_level',
                             'gender', 'location', 'home_team', 'away_team',
                             'game_description', 'crew_size', 'crew_description',
                             'notes'], index=False)
-
 
 if __name__ == "__main__":
     main()

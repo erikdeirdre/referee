@@ -1,13 +1,14 @@
 """ Main Module """
-from os import environ
 from sys import (exit, stdout)
-from flask import Flask
+from os import getenv
+import json
+from flask import Flask, request, jsonify
 from flask_cors import CORS
-from flask_graphql import GraphQLView
+from helpers.utils import HttpError
+
 import logging
 
 APP = Flask(__name__)
-CORS(APP)
 APP.config.from_pyfile('settings.py')
 
 logging.basicConfig(stream=stdout,
@@ -15,18 +16,40 @@ logging.basicConfig(stream=stdout,
 
 logging.info('Starting ...')
 
-from .schema import SCHEMA
+CORS(APP, resources={r"/*": {"origins": "*", "send_wildcard": "False"}})
 
-@APP.route('/')
+
+@APP.errorhandler(HttpError)
+def handle_auth_error(ex):
+    response = jsonify(ex.error)
+    response.status_code = ex.status_code
+    return response
+
+@APP.route('/api/health')
 def health():
     return 'healthy'
 
+@APP.route('/api/contact', methods=['POST'])
+def contact():
+    try:
+        response = email_client.send_email(request.get_json(), "contact.html", True)
+        resp = jsonify(response['message'])
+        resp.status_code = response['code']
+        return resp
+    except Exception as e:
+        resp = jsonify({"message": "Error processing Contact Form"})
+        resp.status_code = 500
+        logging.error(e)
 
-APP.add_url_rule(
-    '/graphql',
-    view_func=GraphQLView.as_view(
-        'graphql',
-        schema=SCHEMA,
-        graphiql=APP.config['GRAPHIQL'],
-    )
-)
+@APP.route('/api/profile', methods=['POST'])
+@require_auth(None)
+def update_profile():
+    try:
+        profile = management_api.update_profile(json.loads(request.data))
+        resp = jsonify(profile['message'])
+        resp.status_code = profile['code']
+    except Exception as e:
+        resp = jsonify({ "message": f"{e}"})
+        resp.status_code = 406
+
+    return resp

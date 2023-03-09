@@ -4,7 +4,7 @@ This code reads a master schedule, linking information from a town's schedule to
 
 The file resulting file can be updated to include the referee information as well.
 
-## Arguements
+## Arguments
 
 The script requires five arguments:
 `-m` - the file location and name of the master schedule.

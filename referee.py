@@ -24,12 +24,16 @@ def get_games(rows, home_team):
     found_games = False
 
     for row in rows.values:
-        if found_games and home_team in row[2].lower():
-            games.append({'game_date': row[1],'home_team': f"{row[2].title()}-{int(row[3])}",
-                        'away_team': f"{row[4].title()}-{int(row[5])}"})
-        elif isinstance(row[2],str) and 'home team' in row[2].lower() and \
-            'away team' in row[4].lower():
-            found_games = True
+        if isinstance(row[2], str):
+            if found_games and home_team in row[2].lower():
+                games.append({
+                    'game_date': row[1],
+                    'home_team': f"{row[2].title()}-{int(row[3])}",
+                    'away_team': f"{row[4].title()}-{int(row[5])}"
+                })
+            elif 'home team' in row[2].lower() and \
+                'away team' in row[4].lower():
+                found_games = True
 
     return games
 
@@ -39,30 +43,31 @@ def read_master_spreadsheet(file_name, home_team):
     for sheet in df.book.worksheets:
         if sheet.sheet_state == 'visible':
             rows = df.parse(sheet.title)
-            game_result = get_games(rows, home_team)
-            if len(rows) and "team template" in rows.columns[0].lower() and \
-                "bracket" in rows.values[0][0].lower() and \
-                "age group" in rows.values[0][2].lower() and \
-                len(game_result) > 0:
-                age_group_gender = rows.values[0][4].split(' ')
-                if age_group_gender[-1][:1] == 'B':
-                    gender = 'M'
-                else:
-                    gender = 'F'
-                for game in game_result:
-                    games.append({
-                        'game_nbr': '',
-                        'game_level': '',
-                        'game_description': '',
-                        'crew_size': '',
-                        'crew_description': '',
-                        'notes': '',
-                        'gender': gender,
-                        'age_group': age_group_gender[1],
-                        'date': game['game_date'].strftime("%m/%d/%Y"),
-                        'home_team': game['home_team'],
-                        'away_team': game['away_team']               
-                    })
+            if not rows.empty:
+                game_result = get_games(rows, home_team)
+                if len(rows) and "team template" in rows.columns[0].lower() and \
+                    "bracket" in rows.values[0][0].lower() and \
+                    "age group" in rows.values[0][2].lower() and \
+                    len(game_result) > 0:
+                    age_group_gender = rows.values[0][4].split(' ')
+                    if age_group_gender[-1][:1] == 'B':
+                        gender = 'M'
+                    else:
+                        gender = 'F'
+                    for game in game_result:
+                        games.append({
+                            'game_nbr': '',
+                            'game_level': '',
+                            'game_description': '',
+                            'crew_size': '',
+                            'crew_description': '',
+                            'notes': '',
+                            'gender': gender,
+                            'age_group': age_group_gender[1],
+                            'date': game['game_date'].strftime("%m/%d/%Y"),
+                            'home_team': game['home_team'],
+                            'away_team': game['away_team']               
+                        })
 
     return games
 

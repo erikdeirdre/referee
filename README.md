@@ -4,14 +4,47 @@ This code reads a master schedule, linking information from a town's schedule to
 
 The file resulting file can be updated to include the referee information as well.
 
-## Arguments
+
+## Setup
+
+This Python script requires Python 3.10 or higher.
+
+**Create a virtual environment.** 
+
+`python3 -m venv <virtual environment name>`
+
+example: `python3 -m venv virtualenv`
+
+**Activate virtual environment.**
+
+Linux or Mac OS: `source ./<virtual environment name>/bin/activate`
+
+example: `source ./virtualenv/bin/activate`
+
+Windows: 
+
+**Install Script Requirements.**
+
+`pip install -r requirements.txt`
+
+
+## Running the Script
+
+### Arguments
 
 The script requires five arguments:
+
 `-m` - the file location and name of the master schedule.
+
 `-s` - file location and name of the town's schedule.
+
 `-t` - the name of the town, or home team.
+
 `-o` - the location and name of the output file.
+
 `-f` - the name of the file containing field name translations.
+
+`python referee.py -m <master schedule file name> -s <town schedule file name> -t <town name> -o <name of the output file>`
 
 ## Expected Master Schedule Format
 
@@ -33,7 +66,7 @@ Once the titles are found, the script searches for the "Home Team" matching the 
 
 The script processes the rows until no more rows. It then moves on to the next sheet.
 
-## Expected Master Schedule Format
+## Expected Home Town Schedule Format
 
 ## Built-in translations
 
@@ -54,8 +87,8 @@ The script attempts to complete the proper conversion however it is best to manu
 
 **NOTE:** If the field names match between GameOfficials and the schedule then set the two columns to the same value:
 
-For matching fields: `"Field One", "Field One"`
+For matching fields: `"Field One","Field One"`
 
-Translation: `"Field One", "Gillette Stadium - Field"`
+For Translating: `"Field One","Gillette Stadium - Field"`
 
 

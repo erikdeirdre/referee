@@ -82,12 +82,16 @@ def read_town_spreadsheet(file_name, town_name, fields):
 
     for sheet in df.book.worksheets:
         if sheet.sheet_state == 'visible' and \
-            sheet.title in ('7TH_8TH', '5TH_6TH'):
+            sheet.title in ('7TH_8TH', '5TH_6TH', '3RD_4TH', '1ST_2ND'):
             found_schedule = False
             if '7TH' in sheet.title:
                 age_group = '7/8'
-            if '5TH' in sheet.title:
-                age_group = '5/6' 
+            elif '5TH' in sheet.title:
+                age_group = '5/6'
+            elif '3RD_4TH' in sheet.title:
+                age_group = '3/4'
+            else:
+                age_group = '1/2'
             for row in df.parse(sheet.title).values:
                 if "Division" in row and "Field" in row and "Time" in row:
                     found_schedule = True

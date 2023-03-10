@@ -68,6 +68,19 @@ The script processes the rows until no more rows. It then moves on to the next s
 
 ## Expected Home Town Schedule Format
 
+The team schedule is an Excel-based spreadsheet consisting of several sheets.
+
+![Alt text](assets/hometownschedule.png?raw=true "Home Team Schedule")
+
+
+Sheets named '7TH_8TH', '5TH_6TH', '3RD_4TH', '1ST_2ND' are processed.
+
+The script looks for the title line containing 'division', 'field', and 'time'. When found the script processes the remaining rows.
+
+The title line is then queried to determine the column values for field, time, and dates. A lookup map of date, and column number is created.
+
+The script then reads every subsequent row placing populating a map based on the lookup tables.
+
 ## Built-in translations
 
 Translations normally occur regardless of the field's case: upper, lower, or proper.

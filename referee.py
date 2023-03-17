@@ -19,13 +19,17 @@ def load_fields(file_name):
 
     fields = {}
 
-    with open(file_name, mode ='r')as file:
-        csv_file = csv.DictReader(file)
+    try:
+        with open(file_name, mode ='r')as file:
+            csv_file = csv.DictReader(file)
 
-        for line in csv_file:
-            fields[line['id']] = line['description']
+            for line in csv_file:
+                fields[line['id']] = line['description']
 
-    return fields
+        return fields, 0
+    except FileNotFoundError as fe:
+        logging.error(f"{fe.strerror}: {fe.filename}")
+        return fields, 66
 
 def get_games(rows, home_team):
     games = []

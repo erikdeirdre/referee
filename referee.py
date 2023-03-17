@@ -1,4 +1,5 @@
-from sys import (argv, exit)
+from sys import (argv, exit, stdout)
+from os import getenv
 from os.path import exists
 from getopt import (getopt, GetoptError)
 from datetime import (datetime, date, time)
@@ -6,6 +7,13 @@ from posixpath import split
 import csv
 import pandas as pd
 
+import logging
+
+# Default to info
+LOG_LEVEL = getenv("LOG_LEVEL") or 20
+
+logging.basicConfig(stream=stdout,
+                    level=LOG_LEVEL)
 
 def load_fields(file_name):
 
@@ -129,43 +137,62 @@ def read_town_spreadsheet(file_name, town_name, fields):
 
     return game_times
 
-def main():
-    master_file = None
-    town_file = None
-    town = None
-    USAGE='referee.py -m <master schedule file> -s <town schedule file>'
-    '-t <town> -f <field conversion file> -o <output file name>'
+def get_arguments(args):
+    arguments = {
+        'master_file': None, 'town_file': None, 'town': None,
+        'se_file': None, 'output_file': None, 'field_file': None
+    }
+
+    USAGE='USAGE: referee.py -m <master schedule file> -s <town schedule file>'
+    '-t <town> -f <field conversion file> -o <output file name> -e <sport engine file>'
 
     try:
-        opts, args = getopt(argv[1:],"hm:t:s:o:f:",
-                            ["master-file=","town-file=","town=", "output=", "fields="])
+        opts, args = getopt(args,"hm:t:s:o:f:e:",
+                            ["master-file=","town-file=","town=", "output=", "fields=",
+                             "se-file="])
     except GetoptError:
-        print(USAGE)
-        exit(2)
+        logging.error(USAGE)
+        return 77, arguments
+
     for opt, arg in opts:
         if opt == '-h':
-            print(USAGE)
-            exit(3)
+            logging.error(USAGE)
+            return 99, arguments
         elif opt in ("-m", "--master-file"):
-            master_file = arg
+            arguments['master_file'] = arg
         elif opt in ("-s", "--town-file"):
-            town_file = arg
+            arguments['town_file'] = arg
         elif opt in ("-t", "--town"):
-            town = arg.lower()
+            arguments['town'] = arg.lower()
         elif opt in ("-o", "--output"):
-            output_file = arg
+            arguments['output_file'] = arg
         elif opt in ("-f", "--fields"):
-            field_file = arg
-    if town is None or town_file is None or master_file is None or \
-        field_file is None or output_file is None:
-        print(USAGE)
-        exit(3)
+            arguments['field_file'] = arg
+        elif opt in ("-e", "--se-file"):
+            arguments['se_file'] = arg
+    if arguments['town'] is None or arguments['town_file'] is None or \
+       arguments['master_file']is None or arguments['field_file'] is None or \
+       arguments['output_file'] is None:
+        logging.error(USAGE)
+        return 99, arguments
+    
+    return 0, arguments
 
-    master_schedule = pd.DataFrame(read_master_spreadsheet(master_file, town))
+def main():
 
-    fields = load_fields(field_file)
+    rc, args = get_arguments(argv[1:])
+    if rc:
+        exit(rc)
 
-    town_times = pd.DataFrame(read_town_spreadsheet(town_file, town, fields))
+    master_schedule = pd.DataFrame(
+        read_master_spreadsheet(args['master_file'],
+                                args['town'])
+        )
+
+    fields = load_fields(args['field_file'])
+
+    town_times = pd.DataFrame(read_town_spreadsheet(args['town_file'],
+                                                    args['town'], fields))
 
     header = [
         'GameNum', 'GameDate', 'GameTime', 'GameAge', 'GameLevel',
@@ -186,7 +213,7 @@ def main():
     town_schedule = pd.merge(master_schedule, town_times, how='inner',
                              on=['age_group', 'date', 'gender', 'home_team'])
 
-    town_schedule.to_excel(output_file, header=header, columns=['game_nbr',
+    town_schedule.to_excel(args['output_file'], header=header, columns=['game_nbr',
                             'date','time', 'age_group', 'game_level',
                             'gender', 'location', 'home_team', 'away_team',
                             'game_description', 'crew_size', 'crew_description',

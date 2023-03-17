@@ -16,7 +16,7 @@ class TestLoadFields(unittest.TestCase):
         with self.assertLogs(level='INFO') as cm:
             fields, rc = load_fields('file_does_not_exist.csv')
         self.assertEqual(
-            cm.output, [f"ERROR:root:No such file or directory: file_does_not_exist.csv"]
+            cm.output, ["ERROR:root:No such file or directory: file_does_not_exist.csv"]
         )
         self.assertEqual(rc, 66)
         self.assertEqual(fields, {})

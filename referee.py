@@ -35,7 +35,7 @@ def get_games(rows, home_team):
     games = []
     found_games = False
 
-    for row in rows.values:
+    for row in rows:
         if isinstance(row[2], str):
             if found_games and home_team in row[2].lower():
                 games.append({
@@ -56,7 +56,7 @@ def read_master_spreadsheet(file_name, home_team):
         if sheet.sheet_state == 'visible':
             rows = df.parse(sheet.title)
             if not rows.empty:
-                game_result = get_games(rows, home_team)
+                game_result = get_games(rows.values, home_team)
                 if len(rows) and "team template" in rows.columns[0].lower() and \
                     "bracket" in rows.values[0][0].lower() and \
                     "age group" in rows.values[0][2].lower() and \

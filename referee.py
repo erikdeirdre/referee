@@ -31,57 +31,83 @@ def load_fields(file_name):
         logging.error(f"{fe.strerror}: {fe.filename}")
         return fields, 66
 
-def get_games(rows, home_team):
-    games = []
-    found_games = False
+def get_age_gender(field):
+    age_group_gender = field.split(' ')
+    if age_group_gender[-1][:1] == 'B':
+        return 'M', age_group_gender[1]
+    return 'F', age_group_gender[1]
 
-    for row in rows:
-        if isinstance(row[2], str):
-            if found_games and home_team in row[2].lower():
-                games.append({
-                    'game_date': row[1],
-                    'home_team': f"{row[2].title()}-{int(row[3])}",
-                    'away_team': f"{row[4].title()}-{int(row[5])}"
-                })
-            elif 'home team' in row[2].lower() and \
-                'away team' in row[4].lower():
-                found_games = True
+def process_row(row):
+    gender, age_group = get_age_gender(row[0])
+    try:
+        game_dt = row[2].strftime("%m/%d/%Y")
+    except ValueError:
+        logging.Error(f"Invalid Date for {row}")
+        game_dt = f"Invalid Date format: {row[2]}"
+    
+    game_info = {
+        'gender': gender,
+        'age_group': age_group,
+        'game_date': game_dt,
+        'home_team': f"{row[3]}-{row[4]}",
+        'away_team': f"{row[5]}-{row[6]}"
+    }
+             
+    return game_info
+    
 
-    return games
+def read_master_spreadsheet(file_name, town_team):
+    se_games = []
+    referee_games = []
+    try:
+        df = pd.read_excel(io=file_name, sheet_name='Master')
+    except ValueError:
+        logging.error(f"Master sheet not found in {file_name}")
+        return {
+            'se_games': se_games,
+            'referee_games': referee_games,
+            'rc': 22
+        }
 
-def read_master_spreadsheet(file_name, home_team):
-    games = []
-    df = pd.ExcelFile(file_name)
-    for sheet in df.book.worksheets:
-        if sheet.sheet_state == 'visible':
-            rows = df.parse(sheet.title)
-            if not rows.empty:
-                game_result = get_games(rows.values, home_team)
-                if len(rows) and "team template" in rows.columns[0].lower() and \
-                    "bracket" in rows.values[0][0].lower() and \
-                    "age group" in rows.values[0][2].lower() and \
-                    len(game_result) > 0:
-                    age_group_gender = rows.values[0][4].split(' ')
-                    if age_group_gender[-1][:1] == 'B':
-                        gender = 'M'
-                    else:
-                        gender = 'F'
-                    for game in game_result:
-                        games.append({
-                            'game_nbr': '',
-                            'game_level': '',
-                            'game_description': '',
-                            'crew_size': '',
-                            'crew_description': '',
-                            'notes': '',
-                            'gender': gender,
-                            'age_group': age_group_gender[1],
-                            'date': game['game_date'].strftime("%m/%d/%Y"),
-                            'home_team': game['home_team'],
-                            'away_team': game['away_team']               
-                        })
+#    columns = df.columns.ravel()
+    for row in df.values:
+        if row[3].lower() == town_team:
+            game_data = process_row(row)
+            se_games.append(game_data)
+            referee_games.append({
+                'game_nbr': '',
+                'game_level': '',
+                'game_description': '',
+                'crew_size': '',
+                'crew_description': '',
+                'notes': '',
+                'gender': game_data['gender'],
+                'age_group': game_data['age_group'],
+                'date': game_data['game_date'],
+                'home_team': game_data['home_team'],
+                'away_team': game_data['away_team']                  
+            })
+        elif row[5].lower() == town_team:
+            game_data = process_row(row)
+            referee_games.append({
+                'game_nbr': '',
+                'game_level': '',
+                'game_description': '',
+                'crew_size': '',
+                'crew_description': '',
+                'notes': '',
+                'gender': game_data['gender'],
+                'age_group': game_data['age_group'],
+                'date': game_data['game_date'],
+                'home_team': game_data['home_team'],
+                'away_team': game_data['away_team']                  
+            })
 
-    return games
+    return {
+        'se_games': se_games,
+        'referee_games': referee_games,
+        'rc': 0
+    }
 
 def read_town_spreadsheet(file_name, town_name, fields):
     df = pd.ExcelFile(file_name)
@@ -188,12 +214,14 @@ def main():
     if rc:
         exit(rc)
 
-    master_schedule = pd.DataFrame(
-        read_master_spreadsheet(args['master_file'],
-                                args['town'])
-        )
+    fields, rc = load_fields(args['field_file'])
+    if rc:
+        exit(rc)
 
-    fields = load_fields(args['field_file'])
+    master_schedule = read_master_spreadsheet(args['master_file'],
+                                              args['town'])
+    if master_schedule['rc']:
+        exit(master_schedule['rc'])
 
     town_times = pd.DataFrame(read_town_spreadsheet(args['town_file'],
                                                     args['town'], fields))

@@ -39,16 +39,11 @@ def get_age_gender(field):
 
 def process_row(row):
     gender, age_group = get_age_gender(row[0])
-    try:
-        game_dt = row[2].strftime("%m/%d/%Y")
-    except ValueError:
-        logging.Error(f"Invalid Date for {row}")
-        game_dt = f"Invalid Date format: {row[2]}"
-    
+
     game_info = {
         'gender': gender,
         'age_group': age_group,
-        'game_date': game_dt,
+        'date': row[2].strftime("%m/%d/%Y"),
         'home_team': f"{row[3]}-{row[4]}",
         'away_team': f"{row[5]}-{row[6]}"
     }
@@ -69,7 +64,6 @@ def read_master_spreadsheet(file_name, town_team):
             'rc': 22
         }
 
-#    columns = df.columns.ravel()
     for row in df.values:
         if row[3].lower() == town_team:
             game_data = process_row(row)
@@ -83,25 +77,13 @@ def read_master_spreadsheet(file_name, town_team):
                 'notes': '',
                 'gender': game_data['gender'],
                 'age_group': game_data['age_group'],
-                'date': game_data['game_date'],
+                'date': game_data['date'],
                 'home_team': game_data['home_team'],
                 'away_team': game_data['away_team']                  
             })
         elif row[5].lower() == town_team:
             game_data = process_row(row)
-            referee_games.append({
-                'game_nbr': '',
-                'game_level': '',
-                'game_description': '',
-                'crew_size': '',
-                'crew_description': '',
-                'notes': '',
-                'gender': game_data['gender'],
-                'age_group': game_data['age_group'],
-                'date': game_data['game_date'],
-                'home_team': game_data['home_team'],
-                'away_team': game_data['away_team']                  
-            })
+            se_games.append(game_data)
 
     return {
         'se_games': se_games,
@@ -219,12 +201,13 @@ def main():
         exit(rc)
 
     master_schedule = read_master_spreadsheet(args['master_file'],
-                                              args['town'])
+                                              args['town'].lower())
     if master_schedule['rc']:
         exit(master_schedule['rc'])
 
     town_times = pd.DataFrame(read_town_spreadsheet(args['town_file'],
-                                                    args['town'], fields))
+                                                    args['town'].lower(),
+                                                    fields))
 
     header = [
         'GameNum', 'GameDate', 'GameTime', 'GameAge', 'GameLevel',

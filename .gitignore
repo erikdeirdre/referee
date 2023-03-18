@@ -135,6 +135,7 @@ client_secret*.json
 token.json
 *.xlsx
 files/**
+!tests/files/**
 *.ods
 
 # vsCode

@@ -218,12 +218,10 @@ def main():
     master_schedule['age_group'] = master_schedule['age_group'].astype(str)
     master_schedule['home_team'] = master_schedule['home_team'].astype(str)
     master_schedule['gender'] = master_schedule['gender'].astype(str)
-#    master_schedule['date'] = master_schedule['date'].astype('datetime64[ns]')
 
     town_times['age_group'] = town_times['age_group'].astype(str)
     town_times['home_team'] = town_times['home_team'].astype(str)
     town_times['gender'] = town_times['gender'].astype(str)
-#    town_times['date'] = town_times['date'].astype('datetime64[ns]')   
 
     town_schedule = pd.merge(master_schedule, town_times, how='inner',
                              on=['age_group', 'date', 'gender', 'home_team'])

@@ -1,10 +1,13 @@
+import sys
 from os.path import join, dirname
 from datetime import datetime
 import unittest
+from unittest.mock import patch
 import pandas as pd
 from referee import read_master_spreadsheet, get_age_gender, \
                     get_arguments, load_fields, process_row, \
-                    get_town_games, read_town_spreadsheet
+                    get_town_games, read_town_spreadsheet, \
+                    main
 
 USAGE = 'USAGE: referee.py -m <master schedule file> -s <town schedule file>'
 '-t <town> -f <field conversion file> -o <output file name> -e <sport engine file>'
@@ -418,3 +421,22 @@ class TestReadTownSpreadsheet(unittest.TestCase):
             'boston', fields
         )
         self.assertEqual(results, expected_results)
+
+
+class TestMain(unittest.TestCase):
+    def test_main_invalid_args(self):
+        testargs = ["prog", "-t", "Boston"]
+        with patch('sys.argv', testargs):
+            with self.assertRaises(SystemExit) as cm:
+                main()       
+        self.assertEqual(cm.exception.code, 77)
+
+    def test_main_invalid_load_fields(self):
+        testargs = ["prog", "-m", "master_file", "-s", "town_file",
+                    "-f", "field_file", "-t", "Boston"]
+        with patch('sys.argv', testargs):
+            with self.assertRaises(SystemExit) as cm:
+                main()    
+# Arguments aren't being passed in so it returns the same code
+# as failed arguments
+        self.assertEqual(cm.exception.code, 77)

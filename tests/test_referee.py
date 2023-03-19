@@ -4,7 +4,7 @@ import unittest
 import pandas as pd
 from referee import read_master_spreadsheet, get_age_gender, \
                     get_arguments, load_fields, process_row, \
-                    get_town_games
+                    get_town_games, read_town_spreadsheet
 
 USAGE = 'USAGE: referee.py -m <master schedule file> -s <town schedule file>'
 '-t <town> -f <field conversion file> -o <output file name> -e <sport engine file>'
@@ -334,4 +334,87 @@ class TestGetTownGames(unittest.TestCase):
         df = pd.read_excel(io=join(dirname(__file__), 'files' ,'town_file.xlsx'),
                            sheet_name='7TH_8TH')
         results = get_town_games(df.values, '7TH_8TH', fields, 'boston')
+        self.assertEqual(results, expected_results)
+
+class TestReadTownSpreadsheet(unittest.TestCase):
+    def test_read_town_spreadsheet(self):
+        fields = {
+            'FPP 1': 'Fenway Parking Pool 1'
+        }
+        expected_results = [
+            {
+                'date': '04/01/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-2'
+            }, {
+                'date': '04/08/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'M', 'home_team': 'Boston-1'
+            }, {
+                'date': '04/22/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'M', 'home_team': 'Boston-3'
+            }, {
+                'date': '04/29/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-2'
+            }, {
+                'date': '05/06/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-3'
+            }, {
+                'date': '05/13/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-1'
+            }, {
+                'date': '05/20/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-2'
+            }, {
+                'date': '05/27/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-1'
+            }, {
+                'date': '04/01/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'M', 'home_team': 'Boston-1'
+            }, {
+                'date': '04/08/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-1'
+            }, {
+                'date': '04/22/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-2'
+            }, {
+                'date': '04/29/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'M', 'home_team': 'Boston-3'
+            }, {
+                'date': '05/06/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-3'
+            }, {
+                'date': '05/13/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'M', 'home_team': 'Boston-1'
+            }, {
+                'date': '05/20/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-3'
+            }, {
+                'date': '05/27/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'M', 'home_team': 'Boston-1'
+            }, {
+                'date': '06/03/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-1'
+            }
+        ]
+
+        results = read_town_spreadsheet(
+            join(dirname(__file__), 'files' ,'town_file.xlsx'),
+            'boston', fields
+        )
         self.assertEqual(results, expected_results)

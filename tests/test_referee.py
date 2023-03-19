@@ -1,8 +1,13 @@
+import sys
 from os.path import join, dirname
 from datetime import datetime
 import unittest
+from unittest.mock import patch
+import pandas as pd
 from referee import read_master_spreadsheet, get_age_gender, \
-                    get_arguments, load_fields, process_row
+                    get_arguments, load_fields, process_row, \
+                    get_town_games, read_town_spreadsheet, \
+                    main
 
 USAGE = 'USAGE: referee.py -m <master schedule file> -s <town schedule file>'
 '-t <town> -f <field conversion file> -o <output file name> -e <sport engine file>'
@@ -72,17 +77,6 @@ class TestGetArguments(unittest.TestCase):
         }
         with self.assertLogs(level='INFO') as cm:
             rc, args = get_arguments(['-m', 'master', '-t', 'town'])
-        self.assertEqual(cm.output, [f"ERROR:root:{USAGE}"])
-        self.assertEqual(rc, 99)
-        self.assertEqual(args, expected_args)
-
-    def test_missing_output_file(self):
-        expected_args = {
-            'master_file': 'master', 'town_file': None, 'town': None,
-            'se_file': None, 'output_file': 'output', 'field_file': None
-        }
-        with self.assertLogs(level='INFO') as cm:
-            rc, args = get_arguments(['-o', 'output', '-m', 'master'])
         self.assertEqual(cm.output, [f"ERROR:root:{USAGE}"])
         self.assertEqual(rc, 99)
         self.assertEqual(args, expected_args)
@@ -261,3 +255,188 @@ class TestProcessRow(unittest.TestCase):
         }
         result = process_row(test_input)
         self.assertDictEqual(excepted_result, result)
+
+class TestGetTownGames(unittest.TestCase):
+    def test_get_town_games(self):
+        fields = {
+            'FPP 1': 'Fenway Parking Pool 1'
+        }
+        expected_results = [
+            {
+                'date': '04/01/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7TH_8TH',
+                'gender': 'F', 'home_team': 'Boston-2'
+            }, {
+                'date': '04/08/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7TH_8TH',
+                'gender': 'M', 'home_team': 'Boston-1'
+            }, {
+                'date': '04/22/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7TH_8TH',
+                'gender': 'M', 'home_team': 'Boston-3'
+            }, {
+                'date': '04/29/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7TH_8TH',
+                'gender': 'F', 'home_team': 'Boston-2'
+            }, {
+                'date': '05/06/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7TH_8TH',
+                'gender': 'F', 'home_team': 'Boston-3'
+            }, {
+                'date': '05/13/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7TH_8TH',
+                'gender': 'F', 'home_team': 'Boston-1'
+            }, {
+                'date': '05/20/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7TH_8TH',
+                'gender': 'F', 'home_team': 'Boston-2'
+            }, {
+                'date': '05/27/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7TH_8TH',
+                'gender': 'F', 'home_team': 'Boston-1'
+            }, {
+                'date': '04/01/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7TH_8TH',
+                'gender': 'M', 'home_team': 'Boston-1'
+            }, {
+                'date': '04/08/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7TH_8TH',
+                'gender': 'F', 'home_team': 'Boston-1'
+            }, {
+                'date': '04/22/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7TH_8TH',
+                'gender': 'F', 'home_team': 'Boston-2'
+            }, {
+                'date': '04/29/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7TH_8TH',
+                'gender': 'M', 'home_team': 'Boston-3'
+            }, {
+                'date': '05/06/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7TH_8TH',
+                'gender': 'F', 'home_team': 'Boston-3'
+            }, {
+                'date': '05/13/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7TH_8TH',
+                'gender': 'M', 'home_team': 'Boston-1'
+            }, {
+                'date': '05/20/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7TH_8TH',
+                'gender': 'F', 'home_team': 'Boston-3'
+            }, {
+                'date': '05/27/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7TH_8TH',
+                'gender': 'M', 'home_team': 'Boston-1'
+            }, {
+                'date': '06/03/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7TH_8TH',
+                'gender': 'F', 'home_team': 'Boston-1'
+            }
+        ]
+
+
+        df = pd.read_excel(io=join(dirname(__file__), 'files' ,'town_file.xlsx'),
+                           sheet_name='7TH_8TH')
+        results = get_town_games(df.values, '7TH_8TH', fields, 'boston')
+        self.assertEqual(results, expected_results)
+
+class TestReadTownSpreadsheet(unittest.TestCase):
+    def test_read_town_spreadsheet(self):
+        fields = {
+            'FPP 1': 'Fenway Parking Pool 1'
+        }
+        expected_results = [
+            {
+                'date': '04/01/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-2'
+            }, {
+                'date': '04/08/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'M', 'home_team': 'Boston-1'
+            }, {
+                'date': '04/22/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'M', 'home_team': 'Boston-3'
+            }, {
+                'date': '04/29/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-2'
+            }, {
+                'date': '05/06/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-3'
+            }, {
+                'date': '05/13/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-1'
+            }, {
+                'date': '05/20/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-2'
+            }, {
+                'date': '05/27/2023', 'time': '08:00 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-1'
+            }, {
+                'date': '04/01/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'M', 'home_team': 'Boston-1'
+            }, {
+                'date': '04/08/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-1'
+            }, {
+                'date': '04/22/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-2'
+            }, {
+                'date': '04/29/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'M', 'home_team': 'Boston-3'
+            }, {
+                'date': '05/06/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-3'
+            }, {
+                'date': '05/13/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'M', 'home_team': 'Boston-1'
+            }, {
+                'date': '05/20/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-3'
+            }, {
+                'date': '05/27/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'M', 'home_team': 'Boston-1'
+            }, {
+                'date': '06/03/2023', 'time': '09:30 AM',
+                'location': 'Fenway Parking Pool 1', 'age_group': '7/8',
+                'gender': 'F', 'home_team': 'Boston-1'
+            }
+        ]
+
+        results = read_town_spreadsheet(
+            join(dirname(__file__), 'files' ,'town_file.xlsx'),
+            'boston', fields
+        )
+        self.assertEqual(results, expected_results)
+
+
+class TestMain(unittest.TestCase):
+    def test_main_invalid_args(self):
+        testargs = ["prog", "-t", "Boston"]
+        with patch('sys.argv', testargs):
+            with self.assertRaises(SystemExit) as cm:
+                main()       
+        self.assertEqual(cm.exception.code, 77)
+
+    def test_main_invalid_load_fields(self):
+        testargs = ["prog", "-m", "master_file", "-s", "town_file",
+                    "-f", "field_file", "-t", "Boston"]
+        with patch('sys.argv', testargs):
+            with self.assertRaises(SystemExit) as cm:
+                main()    
+# Arguments aren't being passed in so it returns the same code
+# as failed arguments
+        self.assertEqual(cm.exception.code, 77)

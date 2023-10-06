@@ -48,23 +48,13 @@ The script requires five arguments:
 
 ## Expected Master Schedule Format
 
-The master schedule is an Excel-based spreadsheet consisting of several sheets.
+The master schedule is an Excel-based spreadsheet. Our example the main sheet is a summary of sheets of divisional games. This method results in a 'date' fields being displayed as a numeric value.
 
-![Alt text](assets/masterschedule.png?raw=true "Master Schedule")
+![Alt text](assets/masterschedule.png?raw=true "Correct Master Schedule")
 
-The relevant sheets are identified with the following rules:
-* Row One contains the title "<number> Team Template - <number> Games"
-* Row Two has columns with the words "Bracket" and "Age Group"
+![Alt text](assets/invalidmasterschedule.png?raw=true "Invalid Dates in Master Schedule")
 
-The "Age Group" value provides the Age/Gender for the games listed in the sheet.
-
-The row containing bracket, listing no, town, and number columns are ignored.
-
-The script searches for the row holding titles for "Home Team" and "Away Team".
-
-Once the titles are found, the script searches for the "Home Team" matching the desired town schedule. The assumption is the person executing the script only cares about home games for their respective town.
-
-The script processes the rows until no more rows. It then moves on to the next sheet.
+If the program reports, `ERROR:root:Invalid date value ... make sure all dates are formatted as 'Date'` then the 'date' column is improperly formatted. Format the column as a date to fix this problem.
 
 ## Expected Home Town Schedule Format
 
@@ -103,5 +93,4 @@ The script attempts to complete the proper conversion however it is best to manu
 For matching fields: `"Field One","Field One"`
 
 For Translating: `"Field One","Gillette Stadium - Field"`
-
 

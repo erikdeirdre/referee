@@ -1,0 +1,26 @@
+{
+  "fields": {
+    "hanover": {
+      "forge soccer 2": "HANOVER FORGE POND FIELDS - 02 FIELD (HANOVER)",
+      "forge soccer 3": "HANOVER FORGE POND FIELDS - 03 FIELD (HANOVER)",
+      "forge soccer 4": "HANOVER FORGE POND FIELDS - 04 FIELD (HANOVER)",
+      "hhs turf": "HANOVER HS - TURF FIELD (HANOVER)"
+    }
+   },
+  "team_mappings": {
+    "hanover": {
+      "3rd/4th": {
+        "homer": { "gender": "M", "division": "1" },
+        "marge": { "gender": "M", "division": "2" },
+        "bart": { "gender": "M", "division": "3" },
+        "lisa": { "gender": "M", "division": "4" }
+      },
+      "5th/6th": {
+        "maggie": { "gender": "M", "division": "1" }
+      },
+      "7th/8th": {
+        "wayland": { "gender": "F", "division": "1" }
+      }      
+    }
+  }
+}

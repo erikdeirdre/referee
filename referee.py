@@ -4,7 +4,7 @@ from os.path import exists
 from getopt import (getopt, GetoptError)
 from datetime import (datetime, date, time)
 from posixpath import split
-import csv
+import json
 import pandas as pd
 
 import logging
@@ -15,21 +15,17 @@ LOG_LEVEL = getenv("LOG_LEVEL") or 20
 logging.basicConfig(stream=stdout,
                     level=LOG_LEVEL)
 
-def load_fields(file_name):
+def load_translations(file_name):
 
-    fields = {}
+    translations = {}
 
     try:
         with open(file_name, mode ='r')as file:
-            csv_file = csv.DictReader(file)
-
-            for line in csv_file:
-                fields[line['id']] = line['description']
-
-        return fields, 0
+            translations = json.load(file)
+        return translations, 0
     except FileNotFoundError as fe:
         logging.error(f"{fe.strerror}: {fe.filename}")
-        return fields, 66
+        return translations, 66
 
 def get_age_gender(field):
     age_group_gender = field.split(' ')
@@ -39,11 +35,16 @@ def get_age_gender(field):
 
 def process_row(row):
     gender, age_group = get_age_gender(row[0])
+    try:        
+        game_date = row[2].strftime("%m/%d/%Y")
+    except AttributeError as ae:
+        logging.error("Invalid date value ... make sure all dates are formatted as 'Date'")
+        return None
 
     game_info = {
         'gender': gender,
         'age_group': age_group,
-        'date': row[2].strftime("%m/%d/%Y"),
+        'date': game_date,
         'home_team': f"{row[3]}-{row[4]}",
         'away_team': f"{row[5]}-{row[6]}"
     }
@@ -52,14 +53,14 @@ def process_row(row):
     
 
 def read_master_spreadsheet(file_name, town_team):
-    se_games = []
+    coaches_games = []
     referee_games = []
     try:
         df = pd.read_excel(io=file_name, sheet_name='Master')
     except ValueError:
         logging.error(f"Master sheet not found in {file_name}")
         return {
-            'se_games': se_games,
+            'se_games': coaches_games,
             'referee_games': referee_games,
             'rc': 22
         }
@@ -67,7 +68,7 @@ def read_master_spreadsheet(file_name, town_team):
     for row in df.values:
         if row[3].lower() == town_team:
             game_data = process_row(row)
-            se_games.append(game_data)
+            coaches_games.append(game_data)
             referee_games.append({
                 'game_nbr': '',
                 'game_level': '',
@@ -83,15 +84,24 @@ def read_master_spreadsheet(file_name, town_team):
             })
         elif row[5].lower() == town_team:
             game_data = process_row(row)
-            se_games.append(game_data)
+            coaches_games.append(game_data)
 
     return {
-        'se_games': se_games,
+        'coaches_games': coaches_games,
         'referee_games': referee_games,
         'rc': 0
     }
 
-def get_town_games(rows, age_group, fields, town_name):
+def get_gender_division(field_key, mapping):
+    try:
+        gender = mapping[field_key]['gender']
+        division = mapping[field_key]['division']
+        return gender, division
+    except KeyError as ke:
+        logging.error(f"Coach KeyError: {field_key}")
+        return None, None
+
+def get_town_games(rows, age_group, translations, town_name):
 # lookup is used to map a field to a column number. This allows
 # for the fields to be in different column in each sheet.
     lookup = {
@@ -121,19 +131,21 @@ def get_town_games(rows, age_group, fields, town_name):
                 for col in lookup['dates'].keys():
                     if isinstance(row[lookup['dates'][col]], str) and \
                         'NO GAMES' not in row[lookup['dates'][col]]:
-                        gender_team = row[lookup['dates'][col]].split('-')
-                        if gender_team[0].strip() == "B":
-                            gender = "M"
-                        else:
-                            gender = "F"
-                        game_times.append({
-                            'date': col,
-                            'time': row[lookup['time']].strftime("%I:%M %p"),
-                            'location': fields[row[lookup['field']]],
-                            'age_group': age_group,
-                            'gender': gender,
-                            'home_team': f"{town_name.title()}-{gender_team[1].strip()}"
-                        })
+                        field_name = str(row[lookup['field']]).lower()
+                        location = translations['fields'][town_name][field_name]
+                        gender, team_nbr = get_gender_division(
+                            row[lookup['dates'][col]].lower(),
+                            translations['team_mappings'][town_name][age_group]
+                        )
+                        if gender:
+                            game_times.append({
+                                'date': col,
+                                'time': row[lookup['time']].strftime("%I:%M %p"),
+                                'location': location,
+                                'age_group': age_group,
+                                'gender': gender,
+                                'home_team': f"{town_name.title()} {team_nbr}"
+                            })
         except IndexError:
             logging.error(f"IndexError reported for {row}")
         except KeyError as ke:
@@ -141,24 +153,23 @@ def get_town_games(rows, age_group, fields, town_name):
 
     return game_times
 
-def read_town_spreadsheet(file_name, town_name, fields):
+def read_town_spreadsheet(file_name, town_name, translations):
     df = pd.ExcelFile(file_name)
 
     game_times = []
 
     for sheet in df.book.worksheets:
-        if sheet.title in ('7TH_8TH', '5TH_6TH', '3RD_4TH', '1ST_2ND') and \
+        if sheet.title in ('7TH_8TH', '5TH_6TH', '3RD_4TH') and \
            sheet.sheet_state == 'visible':
             if '7TH' in sheet.title:
                 age_group = '7/8'
             elif '5TH' in sheet.title:
                 age_group = '5/6'
-            elif '3RD' in sheet.title:
-                age_group = '3/4'
             else:
-                age_group = '1/2'
+                age_group = '3/4'
             game_times += get_town_games(df.parse(sheet.title).values,
-                                         age_group, fields, town_name)
+                                         age_group,
+                                         translations, town_name)
 
     return game_times
 
@@ -172,8 +183,8 @@ def get_arguments(args):
     '-t <town> -f <field conversion file> -e <sport engine file>'
 
     try:
-        opts, args = getopt(args,"hm:t:s:f:e:",
-                            ["master-file=","town-file=","town=","fields=",
+        opts, args = getopt(args,"hm:t:s:x:e:",
+                            ["master-file=","town-file=","town=","translations=",
                              "se-file="])
     except GetoptError:
         logging.error(USAGE)
@@ -189,12 +200,12 @@ def get_arguments(args):
             arguments['town_file'] = arg
         elif opt in ("-t", "--town"):
             arguments['town'] = arg.lower()
-        elif opt in ("-f", "--fields"):
-            arguments['field_file'] = arg
+        elif opt in ("-x", "--translations"):
+            arguments['translation_file'] = arg
         elif opt in ("-e", "--se-file"):
             arguments['se_file'] = arg
     if arguments['town'] is None or arguments['town_file'] is None or \
-       arguments['master_file']is None or arguments['field_file'] is None:
+       arguments['master_file']is None or arguments['translation_file'] is None:
         logging.error(USAGE)
         return 99, arguments
     
@@ -206,7 +217,7 @@ def main():
     if rc:
         exit(rc)
 
-    fields, rc = load_fields(args['field_file'])
+    translations, rc = load_translations(args['translation_file'])
     if rc:
         exit(rc)
 
@@ -215,9 +226,11 @@ def main():
     if master_schedule['rc']:
         exit(master_schedule['rc'])
 
-    town_schedule = read_town_spreadsheet(args['town_file'],
-                                       args['town'].lower(),
-                                       fields)
+    town_schedule = read_town_spreadsheet(
+        args['town_file'],
+        args['town'].lower(),
+        translations
+    )
 
     referee_header = [
         'GameNum', 'GameDate', 'GameTime', 'GameAge', 'GameLevel',
@@ -234,8 +247,6 @@ def main():
         'points_win', 'points_loss', 'points_tie', 'points_ot_win',
         'points_ot_loss', 'division_override'
     ]
-
-    print(se_header)
     
     panda_referee_schedule = pd.DataFrame.from_dict(master_schedule['referee_games'])
     panda_town_schedule = pd.DataFrame.from_dict(town_schedule)

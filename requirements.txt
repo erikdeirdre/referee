@@ -28,3 +28,6 @@ six==1.16.0
 uritemplate==4.1.1
 urllib3==1.26.9
 Flask-Cors==3.0.10
+google-api-python-client==2.84.0
+google-auth-httplib2==0.1.0
+google-auth-oauthlib==1.0.0

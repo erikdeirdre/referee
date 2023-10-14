@@ -77,7 +77,6 @@ def read_master_spreadsheet(file_name, town_team):
             se_games.append(game_data)
 
     return {
-        'se_games': se_games,
         'referee_games': referee_games,
         'rc': 0
     }
@@ -111,7 +110,7 @@ def get_town_games(rows, age_group, fields, town_name):
             if found_games and isinstance(row[lookup['time']], time):
                 for col in lookup['dates'].keys():
                     if isinstance(row[lookup['dates'][col]], str) and \
-                        'NO GAMES' not in row[lookup['dates'][col]] and \
+                        'NO GAME' not in row[lookup['dates'][col]] and \
                         'BYE' not in row[lookup['dates'][col]]:
                         gender_team = row[lookup['dates'][col]].split()
                         if gender_team[0].strip() == "B":
@@ -134,7 +133,7 @@ def get_town_games(rows, age_group, fields, town_name):
 
     return game_times
 
-def read_town_spreadsheet(file_name, town_name, fields, age_groups, team_mappings):
+def read_town_spreadsheet(file_name, town_name, fields, age_groups):
     df = pd.ExcelFile(file_name)
 
     game_times = []
@@ -151,16 +150,16 @@ def read_town_spreadsheet(file_name, town_name, fields, age_groups, team_mapping
 def get_arguments(args):
     arguments = {
         'master_file': None, 'town_file': None, 'town': None,
-        'se_file': None, 'output_file': None, 'conversion_file': None
+        'output_file': None, 'conversion_file': None
     }
 
-    USAGE='USAGE: referee.py -m <master schedule file> -s <town schedule file>'
-    '-t <town> -c <conversion file> -e <sport engine file> -o <output file>' 
+    USAGE='USAGE: referee.py -m <master schedule file> -s <town schedule file> ' \
+    '-t <town> -c <conversion file> -o <output file>' 
 
     try:
-        opts, args = getopt(args,"hm:t:s:c:e:",
+        opts, args = getopt(args,"hm:t:s:c:o:",
                             ["master-file=","town-file=","town=","conversion=",
-                             "se-file="])
+                             "output-file"])
     except GetoptError:
         logging.error(USAGE)
         return 77, arguments
@@ -177,8 +176,6 @@ def get_arguments(args):
             arguments['town'] = arg.lower()
         elif opt in ("-c", "--conversion"):
             arguments['conversion_file'] = arg
-        elif opt in ("-e", "--se-file"):
-            arguments['se_file'] = arg
         elif opt in ("-o", "--output-file"):
             arguments['output_file'] = arg
     if arguments['town'] is None or arguments['town_file'] is None or \
@@ -206,12 +203,6 @@ def main():
         exit(55)
 
     try:
-        team_mappings = translations['fields'][args['town'].lower()]
-    except KeyError:
-        logging.error(f"No Team mappings found for {args['town']}")
-        exit(55)
-
-    try:
         age_groups = translations['age_groups']
     except KeyError:
         logging.error(f"No Team mappings found for {args['town']}")
@@ -224,8 +215,7 @@ def main():
 
     town_schedule = read_town_spreadsheet(args['town_file'],
                                        args['town'].lower(),
-                                       fields, age_groups,
-                                       team_mappings)
+                                       fields, age_groups)
 
     assignr_header = [
         'Game ID', 'Date', 'Start Time', 'Venue', 'Sub-Venue',

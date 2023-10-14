@@ -1,6 +1,5 @@
 {
   "age_groups": {
-    "1st_2nd": "Grade 1/2",
     "3rd_4th": "Grade 3/4",
     "5th_6th": "Grade 5/6",
     "7th_8th": "Grade 7/8"     
@@ -32,47 +31,5 @@
         "sub-venue": "Turf Field"
       }
     }
-   },
-  "team_mappings": {
-    "hanover": {
-      "3/4": {
-        "freemanb": { "gender": "M", "division": "1" },
-        "freeman": { "gender": "M", "division": "1" },
-        "rantz": { "gender": "M", "division": "2" },
-        "mccreadyb": { "gender": "M", "division": "3" },
-        "mccready": { "gender": "M", "division": "3" },
-        "mutschler": { "gender": "M", "division": "4" },
-        "hume": { "gender": "M", "division": "5" },
-        "coogan": { "gender": "M", "division": "6" },
-        "sullivanb": { "gender": "M", "division": "7" },
-        "sullivan": { "gender": "M", "division": "7" },
-        "mallon": { "gender": "F", "division": "1" },
-        "audi": { "gender": "F", "division": "2" },
-        "makig": { "gender": "F", "division": "3"},
-        "maki": { "gender": "F", "division": "3"},
-        "egan": { "gender": "F", "division": "4" },
-        "lariviereg": { "gender": "F", "division": "5" },
-        "lariviere": { "gender": "F", "division": "5" },
-        "calabrese": { "gender": "F", "division": "6" }
-      },
-      "5/6": {
-        "coutts": { "gender": "M", "division": "1" },
-        "murray": { "gender": "M", "division": "2" },
-        "macpherson": { "gender": "M", "division": "3" },
-        "blomberg": { "gender": "M", "division": "4" },
-        "ditullio": { "gender": "F", "division": "1" },
-        "mccreadyg": { "gender": "F", "division": "2" },
-        "mccready": { "gender": "F", "division": "2" },
-        "louko": { "gender": "F", "division": "3" },
-        "cutone": { "gender": "F", "division": "4" }
-      },
-      "7/8": {
-        "schlumper": { "gender": "M", "division": "1" },
-        "lewis": { "gender": "M", "division": "2" },
-        "luma": { "gender": "F", "division": "1" },
-        "brown": { "gender": "F", "division": "2" },
-        "sheehan": { "gender": "F", "division": "3" }
-      }      
-    }
-  }
+   }
 }

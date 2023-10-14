@@ -155,7 +155,7 @@ def get_arguments(args):
     }
 
     USAGE='USAGE: referee.py -m <master schedule file> -s <town schedule file>'
-    '-t <town> -c <conversion file> -e <sport engine file>'
+    '-t <town> -c <conversion file> -e <sport engine file> -o <output file>' 
 
     try:
         opts, args = getopt(args,"hm:t:s:c:e:",
@@ -179,8 +179,11 @@ def get_arguments(args):
             arguments['conversion_file'] = arg
         elif opt in ("-e", "--se-file"):
             arguments['se_file'] = arg
+        elif opt in ("-o", "--output-file"):
+            arguments['output_file'] = arg
     if arguments['town'] is None or arguments['town_file'] is None or \
-       arguments['master_file']is None or arguments['conversion_file'] is None:
+       arguments['master_file']is None or arguments['conversion_file'] is None or \
+       arguments['output_file']is None:
         logging.error(USAGE)
         return 99, arguments
     
@@ -249,7 +252,7 @@ def main():
     )
 
     panda_referee_schedule.to_csv(
-        'referee_schedule.csv', header=assignr_header, columns=['game_id',
+        args['output_file'], header=assignr_header, columns=['game_id',
         'date', 'time', 'venue', 'sub_venue', 'age_group', 'league',
         'gender', 'game_type', 'home_team', 'away_team'], index=False
     )

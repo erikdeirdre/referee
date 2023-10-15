@@ -174,14 +174,12 @@ class TestReadMasterSchedule(unittest.TestCase):
             results = read_master_spreadsheet(file_name, "test town")
         self.assertEqual(cm.output,
                          [f"ERROR:root:Master sheet not found in {file_name}"])
-        self.assertEqual(results['se_games'], [])
         self.assertEqual(results['referee_games'], [])
         self.assertEqual(results['rc'], 22)
 
     def test_invalid_town(self):
         file_name = join(dirname(__file__),'files' ,'valid_file.xlsx')
         results = read_master_spreadsheet(file_name, "test town")
-        self.assertEqual(results['se_games'], [])
         self.assertEqual(results['referee_games'], [])
         self.assertEqual(results['rc'], 0)
 

@@ -107,7 +107,7 @@ def get_availability(token, user_id, start_dt, end_dt):
                 })
 
     except KeyError as ke:
-        logging.error(ke)
+        logging.error(f"Key: {ke}, missing from Availability response")
 
     return availability
 

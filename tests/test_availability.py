@@ -5,8 +5,9 @@ import unittest
 import pytest
 from unittest.mock import patch
 import pandas as pd
-from assignr.availability import get_arguments, authenticate, main
-from mock_assignr_response import mocked_requests_post, mocked_requests_get
+from assignr.availability import (get_arguments, authenticate,
+                                  get_availability, main)
+from mock_assignr_response import (mocked_requests_post, mocked_requests_get)
 
 USAGE='USAGE: availability.py -s <start-date> -e <end-date>' \
 ' FORMAT=MM/DD/YYYY'
@@ -20,7 +21,7 @@ def mock_settings_env_vars():
         "CLIENT_SECRET": "clientsecret",
         "CLIENT_SCOPE": "read write",
         "AUTH_URL": "http://test.com/oauth/token",
-        "BASE_URL": "http://test.com/api/v2",
+        "BASE_URL": "http://test.com/api/v2/",
         "REDIRECT_URI": "urn:ietf:wg:oauth:2.0:oob",
         "LOG_LEVEL": "20",
         "FILE_NAME": "test_file.csv"
@@ -110,3 +111,28 @@ class TestGetArguments(unittest.TestCase):
 
         self.assertEqual(cm.output, [f"ERROR:root:Token not found"])
         self.assertEqual(token, None)
+
+    @patch('requests.get', side_effect=mocked_requests_get)
+    def test_valid_availability(self, mock_get):
+        expected_results = [
+            {'date': '2023-01-01', 'avail': 'ALL DAY'}
+        ]
+        avail = get_availability("token", "test", TEST_DATE, TEST_DATE)
+        self.assertEqual(avail, expected_results)
+
+#    @patch.dict(os.environ, {"BASE_URL": "http://fail.com/api/v2/"})
+#    @patch('requests.get', side_effect=mocked_requests_get)
+#    def test_failed_availability(self, mock_get):
+#        with self.assertLogs(level='INFO') as cm:
+#            avail = get_availability("token", "test", TEST_DATE, TEST_DATE)
+#
+#        self.assertEqual(cm.output, [f"ERROR:root:Key: 'availability', missing from Availability response"])
+#        self.assertEqual(avail, []])
+#
+#    @patch('requests.get', side_effect=mocked_requests_get)
+#    def test_invalid_user_availability(self, mock_get):
+#        expected_results = {
+#
+#        }
+#        avail = get_availability("token", "invaliduser", TEST_DATE, TEST_DATE)
+#        self.assertEqual(avail, expected_results)

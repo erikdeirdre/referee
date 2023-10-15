@@ -4,7 +4,7 @@ from datetime import datetime
 import unittest
 from unittest.mock import patch
 import pandas as pd
-from referee import read_master_spreadsheet, get_age_gender, \
+from schedule.referee import read_master_spreadsheet, get_age_gender, \
                     get_arguments, load_transaction_file, process_row, \
                     get_town_games, read_town_spreadsheet, \
                     main

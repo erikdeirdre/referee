@@ -89,11 +89,11 @@ def get_availability(token, user_id, start_dt, end_dt):
 
     status_code, response = get_requests(token, f'users/{user_id}/availability', params=params)
 
-    if status_code != 200:
-        logging.error(f'Failed return code: {status_code} for user: {user_id}')
-        return availability
+#    if status_code != 200:
+#        logging.error(f'Failed return code: {status_code} for user: {user_id}')
+#        return availability
 
-    if 'message' in response:
+    if status_code == 404:
         logging.warning(f'User: {user_id} has no availability')
         return availability
     
@@ -118,7 +118,7 @@ def get_availability(token, user_id, start_dt, end_dt):
 
 def get_referees():
     referees = []
-    print(getcwd())
+
     try:
         df = pd.read_csv(environ['FILE_NAME'])
     except KeyError:

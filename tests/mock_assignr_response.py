@@ -12,11 +12,13 @@ def mocked_requests_get(*args, **kwargs):
     valid_response = {
         'page': {'records': 1, 'pages': 1, 'current_page': 1, 'limit': 200},
         '_embedded': {
-            'availability': [{
-                'id': 123, 'date': '2023-01-01', 'all_day': True, 'description': 'all day', 'created': '2023-10-05T21:24:22.000-04:00', 'updated': '2023-10-05T21:24:22.000-04:00'
-            }]
+            'availability': [
+                {'id': 123, 'date': '2023-01-01', 'all_day': True, 'description': 'all day', 'created': '2023-10-05T21:24:22.000-04:00', 'updated': '2023-10-05T21:24:22.000-04:00'},
+                {'id': 321, 'date': '2023-01-08', 'all_day': False, 'description': '', 'start_time': '08:00 AM', 'end_time': '3:00 PM', 'created': '2023-10-05T21:24:22.000-04:00', 'updated': '2023-10-05T21:24:22.000-04:00'}
+            ]
         }
     }
+
     invalid_response = {
         'page': {'records': 1, 'pages': 1, 'current_page': 1, 'limit': 200},
         '_embedded': {

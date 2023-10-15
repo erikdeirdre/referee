@@ -22,8 +22,7 @@ def mock_settings_env_vars():
         "CLIENT_SCOPE": "read write",
         "AUTH_URL": "http://test.com/oauth/token",
         "BASE_URL": "http://test.com/api/v2/",
-        "REDIRECT_URI": "urn:ietf:wg:oauth:2.0:oob",
-        "LOG_LEVEL": "20"
+        "REDIRECT_URI": "urn:ietf:wg:oauth:2.0:oob"
     }):
         yield
 
@@ -113,7 +112,8 @@ class TestGetArguments(unittest.TestCase):
     @patch('requests.get', side_effect=mocked_requests_get)
     def test_valid_availability(self, mock_get):
         expected_results = [
-            {'date': '2023-01-01', 'avail': 'ALL DAY'}
+            {'date': '2023-01-01', 'avail': 'ALL DAY'},
+            {'date': '2023-01-08', 'avail': '08:00 AM - 3:00 PM'}
         ]
         avail = get_availability("token", "test", TEST_DATE, TEST_DATE)
         self.assertEqual(avail, expected_results)
@@ -127,11 +127,12 @@ class TestGetArguments(unittest.TestCase):
         self.assertEqual(cm.output, [f"ERROR:root:Key: 'availability', missing from Availability response"])
         self.assertEqual(avail, [])
 
+    @patch.dict(os.environ, {"BASE_URL": "http://nouser.com/api/v2/"})
     @patch('requests.get', side_effect=mocked_requests_get)
     def test_invalid_user_availability(self, mock_get):
         with self.assertLogs(level='INFO') as cm:
             avail = get_availability("token", "invaliduser", TEST_DATE, TEST_DATE)
-        self.assertEqual(cm.output, [f"ERROR:root:Key: 'availability', missing from Availability response"])
+        self.assertEqual(cm.output, [f"WARNING:root:User: invaliduser has no availability"])
         self.assertEqual(avail, [])
 
     @patch.dict(os.environ, {"FILE_NAME": "file_not_found.csv"})
@@ -156,3 +157,30 @@ class TestGetArguments(unittest.TestCase):
         ]
         temp = get_referees()
         self.assertEqual(temp, expected_response)
+
+#    def test_main_no_log_level(self):
+#        with self.assertLogs(level='INFO') as cm:
+#            main()
+#        self.assertEqual(cm.output, ["LOG_LEVEL environment variable not found"])
+
+    def test_main_no_arguments(self):
+        with pytest.raises(SystemExit) as e:
+            main()
+        self.assertEqual(e.typename, 'SystemExit')
+        self.assertEqual(e.value.code, 77)
+
+    @patch('assignr.availability.get_arguments')
+    @patch('assignr.availability.authenticate')
+    def test_main_no_token(self, mock_authenticate, mock_arguments):
+        mock_arguments.return_value = [0, 
+            {
+            "start_date": "01/01/2023",
+            "end_date": "01/10/2023"
+            }
+        ]
+        mock_authenticate.return_value = None
+
+        with pytest.raises(SystemExit) as e:
+            main()
+        self.assertEqual(e.typename, 'SystemExit')
+        self.assertEqual(e.value.code, 88)

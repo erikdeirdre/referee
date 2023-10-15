@@ -1,8 +1,0 @@
-pytest
-nose
-coverage
-codecov
-pytest-cov
-pytest-order
-codacy-coverage
-python-mock

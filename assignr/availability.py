@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from getopt import (getopt, GetoptError)
 from datetime import (date, datetime)
 from sys import (exit, stdout)
-from os import environ
+from os import environ, getcwd
 
 load_dotenv()
 
@@ -77,7 +77,7 @@ def get_requests(token, end_point, params=None):
     }
 
     response = requests.get(f"{environ['BASE_URL']}{end_point}", headers=headers, params=params)
-    return response.json()
+    return response.status_code, response.json()
 
 def get_availability(token, user_id, start_dt, end_dt):
     availability = []
@@ -87,7 +87,12 @@ def get_availability(token, user_id, start_dt, end_dt):
         'search[end_date]': end_dt
     }
 
-    response = get_requests(token, f'users/{user_id}/availability', params=params)
+    status_code, response = get_requests(token, f'users/{user_id}/availability', params=params)
+
+    if status_code != 200:
+        logging.error(f'Failed return code: {status_code} for user: {user_id}')
+        return availability
+
     if 'message' in response:
         logging.warning(f'User: {user_id} has no availability')
         return availability
@@ -113,16 +118,14 @@ def get_availability(token, user_id, start_dt, end_dt):
 
 def get_referees():
     referees = []
+    print(getcwd())
     try:
         df = pd.read_csv(environ['FILE_NAME'])
-    except ValueError:
-        logging.error(f"Master sheet not found in {environ['FILE_NAME']}")
-        return referees
     except KeyError:
         logging.error("FILE_NAME environment variable not found")
         return referees
-    except FileNotFoundError as fe:
-        logging.error(f"{fe.strerror}: {fe.filename}")
+    except FileNotFoundError:
+        logging.error(f"{environ['FILE_NAME']} Not Found!")
         return referees
 
     for row in df.to_numpy():

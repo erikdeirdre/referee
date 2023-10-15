@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import patch
 import pandas as pd
 from assignr.availability import (get_arguments, authenticate,
-                                  get_availability, main)
+                                  get_availability, get_referees, main)
 from mock_assignr_response import (mocked_requests_post, mocked_requests_get)
 
 USAGE='USAGE: availability.py -s <start-date> -e <end-date>' \
@@ -23,9 +23,7 @@ def mock_settings_env_vars():
         "AUTH_URL": "http://test.com/oauth/token",
         "BASE_URL": "http://test.com/api/v2/",
         "REDIRECT_URI": "urn:ietf:wg:oauth:2.0:oob",
-        "LOG_LEVEL": "20",
-        "FILE_NAME": "test_file.csv"
-
+        "LOG_LEVEL": "20"
     }):
         yield
 
@@ -120,19 +118,41 @@ class TestGetArguments(unittest.TestCase):
         avail = get_availability("token", "test", TEST_DATE, TEST_DATE)
         self.assertEqual(avail, expected_results)
 
-#    @patch.dict(os.environ, {"BASE_URL": "http://fail.com/api/v2/"})
-#    @patch('requests.get', side_effect=mocked_requests_get)
-#    def test_failed_availability(self, mock_get):
-#        with self.assertLogs(level='INFO') as cm:
-#            avail = get_availability("token", "test", TEST_DATE, TEST_DATE)
-#
-#        self.assertEqual(cm.output, [f"ERROR:root:Key: 'availability', missing from Availability response"])
-#        self.assertEqual(avail, []])
-#
-#    @patch('requests.get', side_effect=mocked_requests_get)
-#    def test_invalid_user_availability(self, mock_get):
-#        expected_results = {
-#
-#        }
-#        avail = get_availability("token", "invaliduser", TEST_DATE, TEST_DATE)
-#        self.assertEqual(avail, expected_results)
+    @patch.dict(os.environ, {"BASE_URL": "http://fail.com/api/v2/"})
+    @patch('requests.get', side_effect=mocked_requests_get)
+    def test_failed_availability(self, mock_get):
+        with self.assertLogs(level='INFO') as cm:
+            avail = get_availability("token", "test", TEST_DATE, TEST_DATE)
+
+        self.assertEqual(cm.output, [f"ERROR:root:Key: 'availability', missing from Availability response"])
+        self.assertEqual(avail, [])
+
+    @patch('requests.get', side_effect=mocked_requests_get)
+    def test_invalid_user_availability(self, mock_get):
+        with self.assertLogs(level='INFO') as cm:
+            avail = get_availability("token", "invaliduser", TEST_DATE, TEST_DATE)
+        self.assertEqual(cm.output, [f"ERROR:root:Key: 'availability', missing from Availability response"])
+        self.assertEqual(avail, [])
+
+    @patch.dict(os.environ, {"FILE_NAME": "file_not_found.csv"})
+    def test_get_referee_no_file_found(self):
+        with self.assertLogs(level='INFO') as cm:
+            temp = get_referees()
+        self.assertEqual(cm.output, ["ERROR:root:file_not_found.csv Not Found!"])
+        self.assertEqual(temp, [])
+
+ #   @patch.dict(os.environ, clear=True)
+ #   def test_get_referee_no_environment_value(self):
+ #       with self.assertLogs(level='INFO') as cm:
+ #           temp = get_referees()
+ #       self.assertEqual(cm.output, ["ERROR:root:FILE_NAME environment variable not found"])
+ #       self.assertEqual(temp, [])
+
+    @patch.dict(os.environ, {"FILE_NAME": "./tests/files/referees.csv"})
+    def test_get_referees(self):
+        expected_response = [
+            {"referee": "Homer Simpson", "id": 1},
+            {"referee": "Marge Simpson", "id": 2}
+        ]
+        temp = get_referees()
+        self.assertEqual(temp, expected_response)

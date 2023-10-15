@@ -1,11 +1,48 @@
+from sys import (argv, exit, stdout)
 import requests
 import logging
 import pandas as pd
 from dotenv import load_dotenv
+from getopt import (getopt, GetoptError)
+from datetime import date
 from sys import (exit, stdout)
 from os import environ
 
 load_dotenv()
+
+def get_arguments(args):
+    arguments = {
+        'start_date': None, 'end_date': None
+    }
+
+    USAGE='USAGE: availability.py -s <start-date> -e <end-date>'
+
+    try:
+        opts, args = getopt(args,"hs:e:",
+                            ["start-date=","end-date="])
+    except GetoptError:
+        logging.error(USAGE)
+        return 77, arguments
+
+    for opt, arg in opts:
+        if opt == '-h':
+            logging.error(USAGE)
+            return 99, arguments
+        elif opt in ("-s", "--start-date"):
+            arguments['start_date'] = arg
+        elif opt in ("-e", "--end-date"):
+            arguments['end_date'] = arg
+
+    if arguments['start_date'] is None or arguments['end_date'] is None:
+        logging.error(USAGE)
+        return 99, arguments
+    
+    if not isinstance(arguments['start_date'], date) or \
+       not isinstance(arguments['end_date'], date):
+        logging.error('Arguments start_date and end_date need to be dates')
+        return 88, arguments
+
+    return 0, arguments
 
 def authenticate():
     form_data = {
@@ -88,31 +125,40 @@ def get_referees():
 
     return referees
 
-try:
-    LOG_LEVEL = environ['LOG_LEVEL']
-except KeyError:
-    logging.error('LOG_LEVEL environment variable not found')
-    exit(99)
+def main():
+    try:
+        LOG_LEVEL = environ['LOG_LEVEL']
+    except KeyError:
+        logging.error('LOG_LEVEL environment variable not found')
+        exit(99)
 
-logging.basicConfig(stream=stdout,
-                    level=int(LOG_LEVEL))
+    logging.basicConfig(stream=stdout,
+                        level=int(LOG_LEVEL))
 
-token = authenticate()
-if token is None:
-    exit(88)
+    rc, args = get_arguments(argv[1:])
+    if rc:
+        exit(rc)
 
-referee_availability = []
-for referee in get_referees():
-    response = get_availability(token, referee['id'], '10/14/2023', '10/30/2023')
-    if response:
-        for resp in response:
-            print(f"{referee['referee']} - {resp['date']} - {resp['avail']}")
-    else:
-        print(f"{referee['referee']} isn't Available")
+    token = authenticate()
+    if token is None:
+        exit(88)
 
-    referee_availability.append({
-        'referee': referee['referee'],
-        'availability': response
-    })
+    referee_availability = []
+    for referee in get_referees():
+        response = get_availability(token, referee['id'], args['start_date'],
+                                    args['end_date'])
+        if response:
+            for resp in response:
+                print(f"{referee['referee']} - {resp['date']} - {resp['avail']}")
+        else:
+            print(f"{referee['referee']} isn't Available")
 
-print(referee_availability)
+        referee_availability.append({
+            'referee': referee['referee'],
+            'availability': response
+        })
+
+    print(referee_availability)
+
+if __name__ == "__main__":
+    main()

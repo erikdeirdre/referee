@@ -159,7 +159,7 @@ def get_arguments(args):
     try:
         opts, args = getopt(args,"hm:t:s:c:o:",
                             ["master-file=","town-file=","town=","conversion=",
-                             "output-file"])
+                             "output-file="])
     except GetoptError:
         logging.error(USAGE)
         return 77, arguments
@@ -222,23 +222,14 @@ def main():
         'Age Group', 'League', 'Gender', 'Game Type',
         'Home Team', 'Away Team'
     ]
-
-    se_header = [
-        'start_date', 'start_time', 'end_date', 'end_time', 'title',
-        'description', 'location', 'location_url', 'all_day_event',
-        'event_type', 'tags', 'team1_id', 'team1_division_id',
-        'team1_is_home', 'team2_id', 'team2_division_id', 'team2_name', 
-        'custom_opponent', 'event_id', 'game_id', 'affects_standings',
-        'points_win', 'points_loss', 'points_tie', 'points_ot_win',
-        'points_ot_loss', 'division_override'
-    ]
    
     panda_referee_schedule = pd.DataFrame.from_dict(master_schedule['referee_games'])
     panda_town_schedule = pd.DataFrame.from_dict(town_schedule)
 
     panda_referee_schedule = pd.merge(
         panda_town_schedule, panda_referee_schedule, how='inner',
-        on=['age_group', 'date', 'gender', 'home_team']
+        on=['age_group', 'date', 'gender', 'home_team'],
+        validate="1:1"
     )
 
     panda_referee_schedule.to_csv(

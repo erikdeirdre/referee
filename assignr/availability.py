@@ -4,7 +4,7 @@ import logging
 import pandas as pd
 from dotenv import load_dotenv
 from getopt import (getopt, GetoptError)
-from datetime import date
+from datetime import (date, datetime)
 from sys import (exit, stdout)
 from os import environ
 
@@ -15,7 +15,9 @@ def get_arguments(args):
         'start_date': None, 'end_date': None
     }
 
-    USAGE='USAGE: availability.py -s <start-date> -e <end-date>'
+    rc = 0
+    USAGE='USAGE: availability.py -s <start-date> -e <end-date>' \
+    ' FORMAT=MM/DD/YYYY'
 
     try:
         opts, args = getopt(args,"hs:e:",
@@ -36,13 +38,19 @@ def get_arguments(args):
     if arguments['start_date'] is None or arguments['end_date'] is None:
         logging.error(USAGE)
         return 99, arguments
-    
-    if not isinstance(arguments['start_date'], date) or \
-       not isinstance(arguments['end_date'], date):
-        logging.error('Arguments start_date and end_date need to be dates')
-        return 88, arguments
 
-    return 0, arguments
+    try:
+        datetime.strptime(arguments['start_date'], "%m/%d/%Y").date()
+    except ValueError:
+        logging.error(f"Start Date value, {arguments['start_date']} is invalid")
+        rc = 88
+    try:
+        datetime.strptime(arguments['end_date'], "%m/%d/%Y").date()
+    except ValueError:
+        logging.error(f"End Date value, {arguments['end_date']} is invalid")
+        rc = 88
+
+    return rc, arguments
 
 def authenticate():
     form_data = {
@@ -81,7 +89,7 @@ def get_availability(token, user_id, start_dt, end_dt):
 
     response = get_requests(token, f'users/{user_id}/availability', params=params)
     if 'message' in response:
-        logging.debug(f'User: {user_id} has no availability')
+        logging.warning(f'User: {user_id} has no availability')
         return availability
     
     try:
@@ -117,7 +125,7 @@ def get_referees():
         logging.error(f"{fe.strerror}: {fe.filename}")
         return referees
 
-    for row in df.values:
+    for row in df.to_numpy():
         referees.append({
             'referee': f"{row[0]} {row[1]}",
             'id': row[2]

@@ -1,5 +1,5 @@
 import unittest
-from helpers.utils import HttpError
+from schedule.helpers.utils import HttpError
 
 
 class TestHttpError(unittest.TestCase):

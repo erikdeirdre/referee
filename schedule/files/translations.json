@@ -1,0 +1,35 @@
+{
+  "age_groups": {
+    "3rd_4th": "Grade 3/4",
+    "5th_6th": "Grade 5/6",
+    "7th_8th": "Grade 7/8"     
+  },
+  "fields": {
+    "hanover": {
+      "FFP1": {
+        "venue": "Forge Pond Park",
+        "sub-venue": "Field One"
+      },
+      "FFP2": {
+        "venue": "Forge Pond Park",
+        "sub-venue": "Field Two"
+      },
+      "FFP3": {
+        "venue": "Forge Pond Park",
+        "sub-venue": "Field Three"
+      },
+      "FFP4": {
+        "venue": "Forge Pond Park",
+        "sub-venue": "Field Four"
+      },
+      "Forge Soccer 4": {
+        "venue": "Forge Pond Park",
+        "sub-venue": "Field Four"
+      },
+      "hhs turf": {
+        "venue": "Hanover High School",
+        "sub-venue": "Turf Field"
+      }
+    }
+   }
+}

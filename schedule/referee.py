@@ -4,7 +4,7 @@ from os.path import exists
 from getopt import (getopt, GetoptError)
 from datetime import (datetime, date, time)
 from posixpath import split
-import csv
+import json
 import pandas as pd
 
 import logging
@@ -15,27 +15,20 @@ LOG_LEVEL = getenv("LOG_LEVEL") or 20
 logging.basicConfig(stream=stdout,
                     level=LOG_LEVEL)
 
-def load_fields(file_name):
-
-    fields = {}
-
+def load_transaction_file(file_name):
+    transaction_contents = {}
     try:
-        with open(file_name, mode ='r')as file:
-            csv_file = csv.DictReader(file)
+        with open(file_name, mode ='r') as file:
+            transaction_contents = json.load(file)
+        return transaction_contents, 0
 
-            for line in csv_file:
-                fields[line['id']] = line['description']
-
-        return fields, 0
     except FileNotFoundError as fe:
         logging.error(f"{fe.strerror}: {fe.filename}")
-        return fields, 66
+        return transaction_contents, 66
 
 def get_age_gender(field):
     age_group_gender = field.split(' ')
-    if age_group_gender[-1][:1] == 'B':
-        return 'M', age_group_gender[1]
-    return 'F', age_group_gender[1]
+    return age_group_gender[2], f"{age_group_gender[0]} {age_group_gender[1]}"
 
 def process_row(row):
     gender, age_group = get_age_gender(row[0])
@@ -69,15 +62,13 @@ def read_master_spreadsheet(file_name, town_team):
             game_data = process_row(row)
             se_games.append(game_data)
             referee_games.append({
-                'game_nbr': '',
-                'game_level': '',
-                'game_description': '',
-                'crew_size': '',
-                'crew_description': '',
-                'notes': '',
+                'game_id': '',
+# Need to add game type to age group translation.
+                'game_type': 'Coastal',
                 'gender': game_data['gender'],
                 'age_group': game_data['age_group'],
                 'date': game_data['date'],
+                'league': town_team.title(),
                 'home_team': game_data['home_team'],
                 'away_team': game_data['away_team']                  
             })
@@ -86,7 +77,6 @@ def read_master_spreadsheet(file_name, town_team):
             se_games.append(game_data)
 
     return {
-        'se_games': se_games,
         'referee_games': referee_games,
         'rc': 0
     }
@@ -120,19 +110,21 @@ def get_town_games(rows, age_group, fields, town_name):
             if found_games and isinstance(row[lookup['time']], time):
                 for col in lookup['dates'].keys():
                     if isinstance(row[lookup['dates'][col]], str) and \
-                        'NO GAMES' not in row[lookup['dates'][col]]:
-                        gender_team = row[lookup['dates'][col]].split('-')
+                        'NO GAME' not in row[lookup['dates'][col]] and \
+                        'BYE' not in row[lookup['dates'][col]]:
+                        gender_team = row[lookup['dates'][col]].split()
                         if gender_team[0].strip() == "B":
-                            gender = "M"
+                            gender = "Boys"
                         else:
-                            gender = "F"
+                            gender = "Girls"
                         game_times.append({
                             'date': col,
                             'time': row[lookup['time']].strftime("%I:%M %p"),
-                            'location': fields[row[lookup['field']]],
+                            'venue': fields[row[lookup['field']]]['venue'],
+                            'sub_venue': fields[row[lookup['field']]]['sub-venue'],
                             'age_group': age_group,
                             'gender': gender,
-                            'home_team': f"{town_name.title()}-{gender_team[1].strip()}"
+                            'home_team': f"{town_name.title()}-{gender_team[2].strip()}"
                         })
         except IndexError:
             logging.error(f"IndexError reported for {row}")
@@ -141,22 +133,15 @@ def get_town_games(rows, age_group, fields, town_name):
 
     return game_times
 
-def read_town_spreadsheet(file_name, town_name, fields):
+def read_town_spreadsheet(file_name, town_name, fields, age_groups):
     df = pd.ExcelFile(file_name)
 
     game_times = []
 
     for sheet in df.book.worksheets:
-        if sheet.title in ('7TH_8TH', '5TH_6TH', '3RD_4TH', '1ST_2ND') and \
+        if sheet.title.lower() in list(age_groups.keys()) and \
            sheet.sheet_state == 'visible':
-            if '7TH' in sheet.title:
-                age_group = '7/8'
-            elif '5TH' in sheet.title:
-                age_group = '5/6'
-            elif '3RD' in sheet.title:
-                age_group = '3/4'
-            else:
-                age_group = '1/2'
+            age_group = age_groups[sheet.title.lower()]
             game_times += get_town_games(df.parse(sheet.title).values,
                                          age_group, fields, town_name)
 
@@ -165,16 +150,16 @@ def read_town_spreadsheet(file_name, town_name, fields):
 def get_arguments(args):
     arguments = {
         'master_file': None, 'town_file': None, 'town': None,
-        'se_file': None, 'output_file': None, 'field_file': None
+        'output_file': None, 'conversion_file': None
     }
 
-    USAGE='USAGE: referee.py -m <master schedule file> -s <town schedule file>'
-    '-t <town> -f <field conversion file> -e <sport engine file>'
+    USAGE='USAGE: referee.py -m <master schedule file> -s <town schedule file> ' \
+    '-t <town> -c <conversion file> -o <output file>' 
 
     try:
-        opts, args = getopt(args,"hm:t:s:f:e:",
-                            ["master-file=","town-file=","town=","fields=",
-                             "se-file="])
+        opts, args = getopt(args,"hm:t:s:c:o:",
+                            ["master-file=","town-file=","town=","conversion=",
+                             "output-file="])
     except GetoptError:
         logging.error(USAGE)
         return 77, arguments
@@ -189,12 +174,13 @@ def get_arguments(args):
             arguments['town_file'] = arg
         elif opt in ("-t", "--town"):
             arguments['town'] = arg.lower()
-        elif opt in ("-f", "--fields"):
-            arguments['field_file'] = arg
-        elif opt in ("-e", "--se-file"):
-            arguments['se_file'] = arg
+        elif opt in ("-c", "--conversion"):
+            arguments['conversion_file'] = arg
+        elif opt in ("-o", "--output-file"):
+            arguments['output_file'] = arg
     if arguments['town'] is None or arguments['town_file'] is None or \
-       arguments['master_file']is None or arguments['field_file'] is None:
+       arguments['master_file']is None or arguments['conversion_file'] is None or \
+       arguments['output_file']is None:
         logging.error(USAGE)
         return 99, arguments
     
@@ -206,9 +192,21 @@ def main():
     if rc:
         exit(rc)
 
-    fields, rc = load_fields(args['field_file'])
+    translations, rc = load_transaction_file(args['conversion_file'])
     if rc:
         exit(rc)
+
+    try:
+        fields = translations['fields'][args['town'].lower()]
+    except KeyError:
+        logging.error(f"No field translations found for {args['town']}")
+        exit(55)
+
+    try:
+        age_groups = translations['age_groups']
+    except KeyError:
+        logging.error(f"No Team mappings found for {args['town']}")
+        exit(55)
 
     master_schedule = read_master_spreadsheet(args['master_file'],
                                               args['town'].lower())
@@ -217,39 +215,27 @@ def main():
 
     town_schedule = read_town_spreadsheet(args['town_file'],
                                        args['town'].lower(),
-                                       fields)
+                                       fields, age_groups)
 
-    referee_header = [
-        'GameNum', 'GameDate', 'GameTime', 'GameAge', 'GameLevel',
-        'Gender', 'Location', 'HomeTeam', 'AwayTeam',
-        'GameDescription', 'CrewSize', 'CrewDescription', 'Notes'
+    assignr_header = [
+        'Game ID', 'Date', 'Start Time', 'Venue', 'Sub-Venue',
+        'Age Group', 'League', 'Gender', 'Game Type',
+        'Home Team', 'Away Team'
     ]
-
-    se_header = [
-        'start_date', 'start_time', 'end_date', 'end_time', 'title',
-        'description', 'location', 'location_url', 'all_day_event',
-        'event_type', 'tags', 'team1_id', 'team1_division_id',
-        'team1_is_home', 'team2_id', 'team2_division_id', 'team2_name', 
-        'custom_opponent', 'event_id', 'game_id', 'affects_standings',
-        'points_win', 'points_loss', 'points_tie', 'points_ot_win',
-        'points_ot_loss', 'division_override'
-    ]
-
-    print(se_header)
-    
+   
     panda_referee_schedule = pd.DataFrame.from_dict(master_schedule['referee_games'])
     panda_town_schedule = pd.DataFrame.from_dict(town_schedule)
 
     panda_referee_schedule = pd.merge(
         panda_town_schedule, panda_referee_schedule, how='inner',
-        on=['age_group', 'date', 'gender', 'home_team']
+        on=['age_group', 'date', 'gender', 'home_team'],
+        validate="1:1"
     )
 
-    panda_referee_schedule.to_excel(
-        'referee_schedule.xlsx', header=referee_header, columns=['game_nbr',
-        'date','time', 'age_group', 'game_level', 'gender',
-        'location', 'home_team', 'away_team', 'game_description',
-        'crew_size', 'crew_description', 'notes'], index=False
+    panda_referee_schedule.to_csv(
+        args['output_file'], header=assignr_header, columns=['game_id',
+        'date', 'time', 'venue', 'sub_venue', 'age_group', 'league',
+        'gender', 'game_type', 'home_team', 'away_team'], index=False
     )
 
 if __name__ == "__main__":

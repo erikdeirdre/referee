@@ -1,15 +1,33 @@
 import sys
-from os.path import join, dirname
+import os
 from datetime import datetime
 import unittest
+import pytest
 from unittest.mock import patch
 import pandas as pd
-from assignr.availability import get_arguments, main
+from assignr.availability import get_arguments, authenticate, main
+from mock_assignr_response import mocked_requests_post, mocked_requests_get
 
 USAGE='USAGE: availability.py -s <start-date> -e <end-date>' \
 ' FORMAT=MM/DD/YYYY'
 
 TEST_DATE='01/01/2023'
+
+@pytest.fixture(autouse=True)
+def mock_settings_env_vars():
+    with patch.dict(os.environ, {
+        "CLIENT_ID": "clientid",
+        "CLIENT_SECRET": "clientsecret",
+        "CLIENT_SCOPE": "read write",
+        "AUTH_URL": "http://test.com/oauth/token",
+        "BASE_URL": "http://test.com/api/v2",
+        "REDIRECT_URI": "urn:ietf:wg:oauth:2.0:oob",
+        "LOG_LEVEL": "20",
+        "FILE_NAME": "test_file.csv"
+
+    }):
+        yield
+
 class TestGetArguments(unittest.TestCase):
     def test_help(self):
         expected_args = {
@@ -76,3 +94,19 @@ class TestGetArguments(unittest.TestCase):
         rc, args = get_arguments(send_args)
         self.assertEqual(rc, 0)
         self.assertEqual(args, expected_args)
+
+    @patch.dict(os.environ, {"AUTH_URL": "http://test.com/oauth/valid"})
+    @patch('requests.post', side_effect=mocked_requests_post)
+    def test_valid_token(self, mock_post):
+        token = authenticate()
+        self.assertEqual(token, "validtoken")
+
+
+    @patch.dict(os.environ, {"AUTH_URL": "http://test.com/oauth/invalid"})
+    @patch('requests.post', side_effect=mocked_requests_post)
+    def test_invalid_token(self, mock_post):
+        with self.assertLogs(level='INFO') as cm:
+            token = authenticate()
+
+        self.assertEqual(cm.output, [f"ERROR:root:Token not found"])
+        self.assertEqual(token, None)

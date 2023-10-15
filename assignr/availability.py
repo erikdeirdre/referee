@@ -64,7 +64,7 @@ def authenticate():
 
     try:
         token = authenticate.json()['access_token']
-    except KeyError:
+    except (KeyError, TypeError):
         logging.error('Token not found')
         token = None
 

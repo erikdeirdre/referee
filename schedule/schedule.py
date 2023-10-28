@@ -5,7 +5,7 @@ from datetime import datetime
 import pandas as pd
 import logging
 from helpers.utils import (get_arguments, get_environment,
-                           load_transaction_file)
+                           load_translation_file)
 from helpers.master_schedule import MasterSchedule
 from helpers.town_schedule import TownSchedule
 
@@ -23,7 +23,7 @@ def main():
     if rc:
         exit(rc)
 
-    translations, rc = load_transaction_file(environment['transaction_file'])
+    translations, rc = load_translation_file(environment['translation_file'])
     if rc:
         exit(rc)
 

@@ -1,6 +1,6 @@
 import unittest
 from os.path import (join, dirname)
-from schedule.helpers.utils import (get_arguments, load_transaction_file)
+from schedule.helpers.utils import (get_arguments, load_translation_file)
 
 USAGE='USAGE: schedule.py -s <town schedule file> -t <town>' 
 
@@ -64,13 +64,13 @@ class TestLoadTransactionFile(unittest.TestCase):
             }
         }
 
-        actual_json, rc = load_transaction_file(join(dirname(__file__),'files' ,'translations.json'))
+        actual_json, rc = load_translation_file(join(dirname(__file__),'files' ,'translations.json'))
         self.assertEqual(rc, 0)
         self.assertEqual(actual_json, expected_json)
 
     def test_invalid_file(self):
         with self.assertLogs(level='INFO') as cm:
-            fields, rc = load_transaction_file('file_does_not_exist.json')
+            fields, rc = load_translation_file('file_does_not_exist.json')
         self.assertEqual(
             cm.output, ["ERROR:root:No such file or directory: file_does_not_exist.json"]
         )

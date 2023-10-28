@@ -7,16 +7,16 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def load_transaction_file(file_name):
-    transaction_contents = {}
+def load_translation_file(file_name):
+    translation_contents = {}
     try:
         with open(file_name, mode ='r') as file:
-            transaction_contents = json.load(file)
-        return transaction_contents, 0
+            translation_contents = json.load(file)
+        return translation_contents, 0
 
     except FileNotFoundError as fe:
         logging.error(f"{fe.strerror}: {fe.filename}")
-        return transaction_contents, 66
+        return translation_contents, 66
 
 def get_environment():
     error = 0
@@ -35,10 +35,10 @@ def get_environment():
         error = 66
 
     try:
-        environment['transaction_file'] = environ['TRANSACTION_FILE']
+        environment['translation_file'] = environ['TRANSLATION_FILE']
     except KeyError:
-        logging.warning('TRANSACTION_FILE environment variable is missing, using default')
-        environment['transaction_file'] = 'files/translations.json'
+        logging.warning('TRANSLATION_FILE environment variable is missing, using default')
+        environment['translation_file'] = 'files/translations.json'
 
     try:
         environment['output_file_prefix'] = environ['OUTPUT_FILE_PREFIX']

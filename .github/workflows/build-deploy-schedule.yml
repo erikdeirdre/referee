@@ -56,35 +56,10 @@ jobs:
     environment: production
     concurrency: production
     steps:
-    - name: Deploy to Production server - Schedule
-      uses: easingthemes/ssh-deploy@main
+    - name: executing remote ssh commands using ssh key
+      uses: appleboy/ssh-action@v1.0.0
       with:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        ARGS: "-rlgoDzvc -i"
-        SOURCE: "schedule/"
-        REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
-        REMOTE_USER: ${{ secrets.REMOTE_USER }}
-        TARGET: ${{ secrets.REMOTE_TARGET }}/schedule
-        SCRIPT_BEFORE: |
-          whoami
-          ls -al
-        SCRIPT_AFTER: |
-          whoami
-          ls -al
-          echo $RSYNC_STDOUT
-    - name: Deploy to Production server - Assignr
-      uses: easingthemes/ssh-deploy@main
-      with:
-        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        ARGS: "-rlgoDzvc -i"
-        SOURCE: "schedule/"
-        REMOTE_HOST: ${{ secrets.REMOTE_HOST }}
-        REMOTE_USER: ${{ secrets.REMOTE_USER }}
-        TARGET: ${{ secrets.REMOTE_TARGET }}/assignr
-        SCRIPT_BEFORE: |
-          whoami
-          ls -al
-        SCRIPT_AFTER: |
-          whoami
-          ls -al
-          echo $RSYNC_STDOUT
+        host: ${{ secrets.REMOTE_HOST }}
+        username: ${{ secrets.USER }}
+        key: ${{ secrets.PRIVATE_KEY }}
+        script: "sudo /root/update_schedule.sh ${CI_COMMIT_SHA}"

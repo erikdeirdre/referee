@@ -1,12 +1,10 @@
-from os.path import join, dirname
-from datetime import datetime
-import unittest
+from unittest import TestCase
 from unittest.mock import patch
 from schedule.helpers.master_schedule import (get_age_gender, process_row,
                                               MasterSchedule)
 
 
-class TestGetAgeGender(unittest.TestCase):
+class TestGetAgeGender(TestCase):
 # expected format "Grade 3/4 Boys"
     def test_get_male(self):
         gender, age_group = get_age_gender("Grade 3/4 Boys")
@@ -19,7 +17,7 @@ class TestGetAgeGender(unittest.TestCase):
         self.assertEqual(age_group, 'Grade 3/4')
 
 
-class TestReadMasterSchedule(unittest.TestCase):
+class TestReadMasterSchedule(TestCase):
     def test_init(self):
         master_schedule = MasterSchedule('invalidid', 'A1:A1')
         self.assertEqual(master_schedule.id, 'invalidid')
@@ -78,7 +76,7 @@ class TestReadMasterSchedule(unittest.TestCase):
 #        self.assertEqual(results['rc'], 22)
 
 
-class TestProcessRow(unittest.TestCase):
+class TestProcessRow(TestCase):
     def test_process_row(self):
         test_input = [
             'Grade 3/4 Boys', 'Test League', '1/1/99',
@@ -89,4 +87,20 @@ class TestProcessRow(unittest.TestCase):
             'home_team': 'Boston-1', 'away_team': 'New York-2'
         }
         result = process_row(test_input)
+        self.assertDictEqual(excepted_result, result)
+
+    def test_invalid_date(self):
+        test_input = [
+            'Grade 3/4 Boys', 'Test League', 'bad_date',
+            'Boston', 1, 'New York', 2
+        ]
+        excepted_result = {
+            'gender': 'Boys', 'age_group': 'Grade 3/4', 'date': None,
+            'home_team': 'Boston-1', 'away_team': 'New York-2'
+        }
+        with self.assertLogs(level='INFO') as cm:
+            result = process_row(test_input)
+        self.assertEqual(
+            cm.output, ["WARNING:root:Date Error: time data 'bad_date' does not match format '%m/%d/%y', for line ['Grade 3/4 Boys', 'Test League', 'bad_date', 'Boston', 1, 'New York', 2]"]
+        )
         self.assertDictEqual(excepted_result, result)

@@ -63,3 +63,4 @@ jobs:
         username: ${{ secrets.USER }}
         key: ${{ secrets.PRIVATE_KEY }}
         script: "sudo /root/update_schedule.sh ${CI_COMMIT_SHA}"
+      if: github.ref == 'refs/heads/main'

@@ -3,10 +3,9 @@ name: Build
 on:
   push:
     paths:
-      - 'assignr'
-    paths-ignore:
-      - 'README.md'
-      - 'VERSION'
+      - 'assignr/**'
+      - '!README.md'
+      - '!VERSION'
     branches:
       - '**'
       - '!releases/**'

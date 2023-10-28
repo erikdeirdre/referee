@@ -3,10 +3,9 @@ name: Build
 on:
   push:
     paths:
-      - 'schedule'
-    paths-ignore:
-      - 'README.md'
-      - 'VERSION'
+      - 'schedule/**'
+      - '!README.md'
+      - '!VERSION'
     branches:
       - '**'
       - '!releases/**'

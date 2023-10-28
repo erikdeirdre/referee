@@ -1,7 +1,7 @@
 import sys
 import os
 from datetime import datetime
-import unittest
+from unittest import TestCase
 import pytest
 from unittest.mock import patch
 import pandas as pd
@@ -26,7 +26,7 @@ def mock_settings_env_vars():
     }):
         yield
 
-class TestGetArguments(unittest.TestCase):
+class TestGetArguments(TestCase):
     def test_help(self):
         expected_args = {
             'start_date': None, 'end_date': None

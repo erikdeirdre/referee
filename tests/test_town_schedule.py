@@ -1,9 +1,9 @@
-import unittest
+from unittest import TestCase
 from os.path import (join, dirname)
 from schedule.helpers.town_schedule import TownSchedule
 
 
-class TestTownSchedule(unittest.TestCase):
+class TestTownSchedule(TestCase):
     def test_get_town_games(self):
         POOL = 'Pool 1'
         AM8 = "08:00 AM"

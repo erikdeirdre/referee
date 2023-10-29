@@ -65,5 +65,5 @@ jobs:
         host: ${{ secrets.REMOTE_HOST }}
         username: ${{ secrets.REMOTE_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: "sudo /root/update_schedule.sh ${CI_COMMIT_SHA}"
+        script: "sudo /root/update_schedule.sh ${GITHUB_SHA}"
 #      if: github.ref == 'refs/heads/main'

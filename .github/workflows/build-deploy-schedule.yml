@@ -1,4 +1,4 @@
-name: Build
+name: Build / Deploy Schedule
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - 'schedule/**'
       - '!README.md'
       - '!VERSION'
+      - '.github/workflows/build-deploy-schedule.yml'
     branches:
       - '**'
       - '!releases/**'
@@ -52,6 +53,8 @@ jobs:
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   deployment:
+    if: github.ref == 'refs/heads/main'
+    needs: build
     runs-on: ubuntu-latest
     environment: production
     concurrency: production
@@ -60,7 +63,6 @@ jobs:
       uses: appleboy/ssh-action@v1.0.0
       with:
         host: ${{ secrets.REMOTE_HOST }}
-        username: ${{ secrets.USER }}
-        key: ${{ secrets.PRIVATE_KEY }}
-        script: "sudo /root/update_schedule.sh ${CI_COMMIT_SHA}"
-      if: github.ref == 'refs/heads/main'
+        username: ${{ secrets.REMOTE_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: "./update_schedule.sh ${GITHUB_SHA}"

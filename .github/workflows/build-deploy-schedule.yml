@@ -1,4 +1,4 @@
-name: Build
+name: Build / Deploy Schedule
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
       - '!releases/**'
   pull_request:
     paths:
-      - '.build-deploy-schedule.yml'
+      - '.github/workflows/build-deploy-schedule.yml'
 
 jobs:    
   build:

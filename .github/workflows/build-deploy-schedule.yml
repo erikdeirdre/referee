@@ -56,6 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     concurrency: production
+    needs: build
     steps:
     - name: executing remote ssh commands using ssh key
       uses: appleboy/ssh-action@v1.0.0

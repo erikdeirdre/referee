@@ -65,4 +65,4 @@ jobs:
         host: ${{ secrets.REMOTE_HOST }}
         username: ${{ secrets.REMOTE_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: "./update_schedule.sh ${GITHUB_SHA}"
+        script: "sudo ./update_schedule.sh ${{ github.sha }}"

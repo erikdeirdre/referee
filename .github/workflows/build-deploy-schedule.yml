@@ -9,6 +9,9 @@ on:
     branches:
       - '**'
       - '!releases/**'
+  pull_request:
+    paths:
+      - '.build-deploy-schedule.yml'
 
 jobs:    
   build:
@@ -63,4 +66,4 @@ jobs:
         username: ${{ secrets.USER }}
         key: ${{ secrets.PRIVATE_KEY }}
         script: "sudo /root/update_schedule.sh ${CI_COMMIT_SHA}"
-      if: github.ref == 'refs/heads/main'
+#      if: github.ref == 'refs/heads/main'

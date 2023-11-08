@@ -15,29 +15,31 @@ logging.basicConfig(stream=stdout,
                     level=int(environ['LOG_LEVEL']))
 
 def main():
+    logging.info("Starting Schedule Conversion")
     rc, args = get_arguments(argv[1:])
     if rc:
         exit(rc)
 
+    logging.debug(f"Running scheduler with file, {args['town_file']} for town: {args['town'].title()}")
     rc, environment = get_environment()
     if rc:
         exit(rc)
 
     translations, rc = load_translation_file(environment['translation_file'])
     if rc:
-        exit(rc)
+        return rc
 
     try:
         fields = translations['fields'][args['town'].lower()]
     except KeyError:
         logging.error(f"No field translations found for {args['town']}")
-        exit(55)
+        return 55
 
     try:
         age_groups = translations['age_groups']
     except KeyError:
         logging.error(f"No Team mappings found for {args['town']}")
-        exit(55)
+        return 55
 
     master_schedule = MasterSchedule(environment['spreadsheet_id'],
                                      environment['range_name'])
@@ -65,12 +67,13 @@ def main():
     )
 
     str_date = datetime.now().strftime('%Y%m%d%H%M')
-    panda_referee_schedule.to_csv(
-        f"{environment['output_file_prefix']}-{str_date}",
+    panda_referee_schedule.to_csv(args['output_file'],
         header=assignor_header, columns=['game_id',
         'date', 'time', 'venue', 'sub_venue', 'age_group', 'league',
         'gender', 'game_type', 'home_team', 'away_team'], index=False
     )
+    logging.info(f"Completed Schedule Conversion for {args['town'].title()}")
+    return 0
 
 if __name__ == "__main__":
-    main()
+    exit(main())

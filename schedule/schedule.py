@@ -52,9 +52,8 @@ def main():
     town_schedule.read_town_spreadsheet()
 
     assignor_header = [
-        'Game ID', 'Date', 'Start Time', 'Venue', 'Sub-Venue',
-        'Age Group', 'League', 'Gender', 'Game Type',
-        'Home Team', 'Away Team'
+        'game_id', 'date', 'time', 'venue', 'sub_venue', 'age_group',
+        'league', 'gender', 'game_type', 'home_team', 'away_team'
     ]
    
     panda_referee_schedule = pd.DataFrame.from_dict(master_schedule.referee_games)
@@ -66,10 +65,10 @@ def main():
         validate="1:1"
     )
 
-    str_date = datetime.now().strftime('%Y%m%d%H%M')
+    _ = datetime.now().strftime('%Y%m%d%H%M')
     panda_referee_schedule.to_csv(args['output_file'],
         header=assignor_header, columns=['game_id',
-        'date', 'time', 'venue', 'sub_venue', 'age_group', 'league',
+        'date', 'start_time', 'venue', 'sub_venue', 'age_group', 'league',
         'gender', 'game_type', 'home_team', 'away_team'], index=False
     )
     logging.info(f"Completed Schedule Conversion for {args['town'].title()}")

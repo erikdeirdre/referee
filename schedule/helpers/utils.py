@@ -41,12 +41,6 @@ def get_environment():
         environment['translation_file'] = 'files/translations.json'
 
     try:
-        environment['output_file_prefix'] = environ['OUTPUT_FILE_PREFIX']
-    except KeyError:
-        logging.warning('OUTPUT_FILE_PREFIX environment variable is missing, using default')
-        environment['output_file_prefix'] = 'schedule'
-
-    try:
         environment['credentials'] = environ['GOOGLE_APPLICATION_CREDENTIALS']
     except KeyError:
         logging.error('GOOGLE_APPLICATION_CREDENTIALS environment variable is missing')
@@ -56,14 +50,15 @@ def get_environment():
 
 def get_arguments(args):
     arguments = {
-        'town_file': None, 'town': None
+        'town_file': None, 'town': None,
+        'output_file': 'schedule.csv'
     }
 
-    USAGE='USAGE: schedule.py -s <town schedule file> -t <town>'
+    USAGE='USAGE: schedule.py -s <town schedule file> -t <town> -o <output file>'
 
     try:
-        opts, args = getopt(args,"hs:t:",
-                            ["town-file=","town="])
+        opts, args = getopt(args,"hs:t:o:",
+                            ["town-file=","town=", "output-file="])
     except GetoptError:
         logging.error(USAGE)
         return 77, arguments
@@ -76,6 +71,8 @@ def get_arguments(args):
             arguments['town_file'] = arg
         elif opt in ("-t", "--town"):
             arguments['town'] = arg.lower()
+        elif opt in ("-o", "--output-file"):
+            arguments['output_file'] = arg
     if arguments['town'] is None or arguments['town_file'] is None:
         logging.error(USAGE)
         return 99, arguments
